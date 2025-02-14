@@ -21,3 +21,6 @@ lib
 
 # clangd
 .cache
+
+# images
+*.png
