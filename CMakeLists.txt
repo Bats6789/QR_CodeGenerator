@@ -18,4 +18,4 @@ target_link_libraries(image png)
 
 # Main executable
 add_executable(QRCode src/main.c)
-target_link_libraries(QRCode image)
+target_link_libraries(QRCode image m)
