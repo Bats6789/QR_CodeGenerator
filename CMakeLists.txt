@@ -11,10 +11,15 @@ include_directories(include)
 
 # Find libraries
 find_package(PNG MODULE)
+if(PNG_FOUND)
+	include_directories(${PNG_INCLUDE_DIRS})
+else()
+	message(FATAL_ERROR "libpng not found")
+endif()
 
 # Build Libraries
 add_library(image STATIC src/image_export.c)
-target_link_libraries(image png)
+target_link_libraries(image ${PNG_LIBRARIES})
 
 # Main executable
 add_executable(QRCode src/main.c)
