@@ -31,6 +31,7 @@ int export_to_png(const char *filename, image_t image) {
 
     png = png_create_write_struct(PNG_LIBPNG_VER_STRING, (png_voidp)NULL, NULL, NULL);
     if (!png) {
+        perror("test.png: write_struct");
         return EXIT_FAILURE;
     }
 
@@ -42,6 +43,7 @@ int export_to_png(const char *filename, image_t image) {
 
     // png expects to jump when an error occurs
     if (setjmp(png_jmpbuf(png))) {
+        perror("test.png: unknown");
         png_destroy_write_struct(&png, &info);
         fclose(file);
         return EXIT_FAILURE;
@@ -61,18 +63,24 @@ int export_to_png(const char *filename, image_t image) {
 
     // write png data
     png_init_io(png, file);
+    printf("Initialized io\n");
 
     png_set_IHDR(png, info, image.width, image.height, 8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
                  PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+    printf("Set IHDR\n");
 
     png_write_info(png, info);
+    printf("Set info\n");
 
     png_write_image(png, (png_bytepp)raw_image);
+    printf("Write image\n");
 
     png_write_end(png, NULL);
+    printf("Write stop\n");
 
     // clean up
     png_destroy_write_struct(&png, &info);
+    printf("Clean up\n");
     fclose(file);
 
     return EXIT_SUCCESS;
