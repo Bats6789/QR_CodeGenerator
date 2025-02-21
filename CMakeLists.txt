@@ -17,10 +17,23 @@ else()
 	message(FATAL_ERROR "libpng not found")
 endif()
 
-# Build Libraries
+# =================Libraries============================
 add_library(image STATIC src/image_export.c)
 target_link_libraries(image ${PNG_LIBRARIES})
 
-# Main executable
+# ===============Main executable========================
 add_executable(QRCode src/main.c)
 target_link_libraries(QRCode image m)
+
+# ===================Tests==============================
+# Reed solomon
+add_executable(reed_solomon_test tests/reed_solomon_test.c)
+
+enable_testing()
+
+add_test(NAME reed_solomon_test COMMAND $<TARGET_FILE:reed_solomon_test>)
+
+set_target_properties(reed_solomon_test
+	PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test
+)
