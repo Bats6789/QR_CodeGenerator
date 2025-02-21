@@ -1,6 +1,8 @@
+#include <ctype.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,7 +98,7 @@ size_t reed_solomon(size_t data_sz, int data[data_sz], size_t ec_sz, int **error
 
     for (size_t i = 0; i < data_sz; ++i) {
         int coef = buf[i];
-        for (size_t j = 1; j < 11; ++j) {
+        for (size_t j = 1; j < ec_sz + 1; ++j) {
             buf[i + j] ^= gf_exp[gf_log[gp[j]] + gf_log[coef]];
         }
     }
@@ -110,6 +112,123 @@ size_t reed_solomon(size_t data_sz, int data[data_sz], size_t ec_sz, int **error
     return ec_sz;
 }
 
+int alphanumeric_lookup(char c) {
+	if (isdigit(c)) {
+		return c - '0';
+	} else if (isalpha(c)) {
+		return toupper(c) - 'A' + 10;
+	} else {
+		switch (c) {
+			case ' ':
+				return 36;
+			case '$':
+				return 37;
+			case '%':
+				return 38;
+			case '*':
+				return 39;
+			case '+':
+				return 40;
+			case '-':
+				return 41;
+			case '.':
+				return 42;
+			case '/':
+				return 43;
+			case ':':
+				return 44;
+		}
+	}
+	return -1;
+}
+
+size_t generate_codewords(const char *message, int **codewords) {
+	size_t sz = 19;
+	int mode = 0b0010; // alphanumeric
+	int *data = calloc(sz, sizeof *data);
+	size_t byte_loc = 4;
+	size_t data_loc = 0;
+	size_t mes_len = strlen(message);
+
+	uint8_t byte;
+	uint16_t tmp;
+
+	byte = mode;
+	byte <<=4;
+	byte ^= (mes_len & 0x1FF) >> 5;
+
+	data[data_loc++] = ((int)byte) & 0xFF;
+
+	byte = mes_len & 0x1F;
+	byte_loc = 5;
+
+	while (*message) {
+		int val1 = alphanumeric_lookup(*message);
+		int val2 = alphanumeric_lookup(*(message + 1));
+
+		if (val2 == -1) {
+			int rem_bits = 8 - byte_loc;
+			if (rem_bits >= 6) {
+				byte <<= 6;
+				byte ^= val1;
+				byte_loc += 6;
+				if (byte_loc == 8) {
+					data[data_loc++] = ((int)byte) & 0xFF;
+					byte = 0;
+					byte_loc = 0;
+				}
+			} else {
+				byte <<= rem_bits;
+				byte ^= val1 >> (6 - rem_bits);
+				data[data_loc++] = ((int)byte) & 0xFF;
+				byte = val1 & (0x3F >> rem_bits);
+				byte_loc = 6 - rem_bits;
+			}
+			message++;
+		} else {
+			tmp = val1 * 45 + val2;
+			int rem_bits = 8 - byte_loc;
+			byte <<= rem_bits;
+			byte ^= tmp >> (11 - rem_bits);
+			int rem_tmp_bits = 11 - rem_bits;
+			data[data_loc++] = ((int)byte) & 0xFF;
+			if (rem_tmp_bits > 8) {
+				byte = ((tmp & (0x7FF >> (11 - rem_tmp_bits))) >> (rem_tmp_bits - 8)) & 0xFF;
+				data[data_loc++] = ((int)byte) & 0xFF;
+				rem_tmp_bits -= 8;
+			}
+			byte = tmp & (0xFF >> (8 - rem_tmp_bits));
+			byte_loc = rem_tmp_bits;
+			message += 2;
+		}
+	}
+
+	if (byte_loc <= 4) {
+		byte <<= 4;
+		byte <<= (4 - byte_loc);
+		data[data_loc++] = ((int)byte) & 0xFF;
+	} else {
+		byte <<= (8 - byte_loc);
+		data[data_loc++] = ((int)byte) & 0xFF;
+		byte = 0;
+		data[data_loc++] = ((int)byte) & 0xFF;
+	}
+	int count = 0;
+
+	for (; data_loc < sz; ++data_loc) {
+		if ((count & 1) == 1) {
+			data[data_loc] = 0b11101100;
+		} else {
+			data[data_loc] = 0b00010001;
+		}
+		count += 1;
+	}
+
+	*codewords = data;
+
+	return sz;
+}
+
 int main(int argc, char **argv) {
     printf("Hello World: %d\n", 0b10);
     size_t width = QR_SZ * PIXEL_PER_MODULE;
@@ -118,12 +237,18 @@ int main(int argc, char **argv) {
     pixel_t pixel = WHITE;
     int *ec;
     size_t ec_sz;
-    int data[] = {16, 32, 12, 86, 97, 128, 236, 17, 236, 17, 236, 17, 236, 17, 236, 17};
-    calculate_table();
-    ec_sz = reed_solomon(16, data, 10, &ec);
+    int *data = NULL;
+	size_t data_sz = generate_codewords("Blake Wingard", &data);
 
+    calculate_table();
+    ec_sz = reed_solomon(data_sz, data, 7, &ec);
+
+    for (size_t i = 0; i < data_sz; ++i) {
+        printf("0x%X ", data[i]);
+    }
+    putchar('\n');
     for (size_t i = 0; i < ec_sz; ++i) {
-        printf("%d ", ec[i]);
+        printf("0x%X ", ec[i]);
     }
     putchar('\n');
 
