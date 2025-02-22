@@ -18,7 +18,7 @@ else()
 endif()
 
 # =================Libraries============================
-add_library(image STATIC src/image_export.c)
+add_library(image STATIC src/image.c src/image_export.c)
 target_link_libraries(image ${PNG_LIBRARIES})
 
 add_library(reed_solomon STATIC src/reed_solomon.c)
@@ -26,11 +26,12 @@ add_library(reed_solomon STATIC src/reed_solomon.c)
 add_library(bch STATIC src/bch.c)
 target_link_libraries(bch m)
 
-add_library(QR_codeword STATIC src/QR_codewords.c src/codeword_lookup.c)
+add_library(QRcode STATIC src/QRcode.c src/QR_codewords.c src/codeword_lookup.c)
+target_link_libraries(QRcode bch reed_solomon)
 
 # ===============Main executable========================
 add_executable(QRCode src/main.c)
-target_link_libraries(QRCode image m reed_solomon bch QR_codeword)
+target_link_libraries(QRCode image m reed_solomon bch QRcode)
 
 # ===================Tests==============================
 # Test binaries
@@ -38,7 +39,7 @@ add_executable(reed_solomon_test tests/reed_solomon_test.c tests/test_utils.c)
 target_link_libraries(reed_solomon_test reed_solomon)
 
 add_executable(codeword_tests tests/codeword_tests.c tests/test_utils.c)
-target_link_libraries(codeword_tests QR_codeword)
+target_link_libraries(codeword_tests QRcode)
 
 enable_testing()
 
