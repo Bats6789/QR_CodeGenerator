@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "image_export.h"
 
@@ -320,6 +321,89 @@ int main(int argc, char **argv) {
             }
         }
     }
+
+	size_t row = QR_SZ - 5;
+	size_t col = QR_SZ - 5;
+	size_t data_loc = 0;
+	uint8_t byte = data[data_loc++] & 0xFF;
+	size_t ec_loc = 0;
+	size_t byte_loc = 0;
+
+	bool upwards = true;
+	bool left = true;
+
+	while (data_loc != data_sz || ec_loc != ec_sz || byte_loc != 7) {
+		bool should_mask = (row + col) % 2 == 0;
+		bool bit_val = (byte & (0x80 >> byte_loc)) == (0x80 >> byte_loc);
+
+		if (should_mask) {
+			pixel = bit_val ? WHITE : BLACK;
+		} else {
+			pixel = bit_val ? BLACK : WHITE;
+		}
+
+		for (size_t i = row * PIXEL_PER_MODULE; i < (row + 1) * PIXEL_PER_MODULE; ++i) {
+			for (size_t j = col * PIXEL_PER_MODULE; j < (col + 1) * PIXEL_PER_MODULE; ++j) {
+				image.pixels[i * width + j] = pixel;
+			}
+		}
+
+		if (left) {
+			col--;
+			left = false;
+		} else {
+			if (upwards) {
+				if (row  == 4 || ((col <= 12 || col > (QR_SZ - 12)) && (row == 13))) {
+					upwards = false;
+					if (col == 11) {
+						col -= 2;
+					} else {
+						col--;
+					}
+				} else {
+					if (row == 11) {
+						row -= 2;
+					} else {
+						row--;
+					}
+					col++;
+				}
+			} else {
+				if (row == QR_SZ - 5 || ((col <= 12) && (row == QR_SZ - 13))) {
+					upwards = true;
+					if (col == 11) {
+						col -= 2;
+					} else if (col == 13) {
+						row = QR_SZ - 13;
+						col--;
+					} else {
+						col--;
+					}
+				} else {
+					col++;
+					if (row == 9) {
+						row += 2;
+					} else {
+						row++;
+					}
+				}
+			}
+
+			left = true;
+		}
+		
+		if (byte_loc == 7) {
+			if (data_loc == data_sz && ec_loc != ec_sz) {
+				byte = ec[ec_loc++];
+				byte_loc = 0;
+			} else if (data_loc != data_sz) {
+				byte = data[data_loc++];
+				byte_loc = 0;
+			}
+		} else {
+			byte_loc++;
+		}
+	}
 
     if (export_to_png("test.png", image) != 0) {
         perror("export");
