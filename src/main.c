@@ -22,38 +22,35 @@
 
 #define FORMAT_XOR_MASK 0b101010000010010
 
-int main(int argc, char **argv) {
-    printf("Hello World: %d\n", 0b10);
-    size_t width = QR_SZ * PIXEL_PER_MODULE;
-    size_t height = QR_SZ * PIXEL_PER_MODULE;
-    image_t image;
-    pixel_t pixel = WHITE;
+typedef struct QRcode_t {
+    size_t width;
+    size_t height;
+    bool *modules;
+} QRcode_t;
+
+QRcode_t generate_QRcode(const char *message) {
     int *ec;
     size_t ec_sz;
     int *data = NULL;
-    size_t data_sz = generate_codewords("TEST123", &data);
+    size_t data_sz = generate_codewords(message, &data);
+    QRcode_t QRcode;
+
+    QRcode.width = MODULE_SZ;
+    QRcode.height = MODULE_SZ;
+    QRcode.modules = malloc(sizeof *QRcode.modules * MODULE_SZ * MODULE_SZ);
+
+    for (size_t i = 0; i < MODULE_SZ * MODULE_SZ; ++i) {
+        QRcode.modules[i] = false;
+    }
 
     calculate_table();
     ec_sz = reed_solomon(data_sz, data, 7, &ec);
 
-    for (size_t i = 0; i < data_sz; ++i) {
-        printf("0x%X ", data[i]);
-    }
-    putchar('\n');
-    for (size_t i = 0; i < ec_sz; ++i) {
-        printf("0x%X ", ec[i]);
-    }
-    putchar('\n');
-
     uint16_t format = ((FORMAT_VAL << 10) + BCH(FORMAT_VAL)) ^ FORMAT_XOR_MASK;
-    printf("0b%015B\n", format);
-
-    image = init_image(width, height);
 
     for (size_t i = 0; i < QR_SZ; ++i) {
         for (size_t j = 0; j < QR_SZ; ++j) {
             // assume white and repaint if not
-            pixel = WHITE;
             size_t mod_row = i - 4;
             size_t mod_col = j - 4;
 
@@ -68,7 +65,7 @@ int main(int argc, char **argv) {
                  ((MODULE_SZ - 5 <= mod_row && mod_row <= MODULE_SZ - 3) && (2 <= mod_col && mod_col <= 4)) ||
                  (mod_row == 6 && (7 < mod_col && mod_col < MODULE_SZ - 8) && (mod_col - 8) % 2 == 0) ||
                  (mod_col == 6 && (7 < mod_row && mod_row < MODULE_SZ - 8) && (mod_row - 8) % 2 == 0))) {
-                pixel = BLACK;
+                QRcode.modules[mod_row * MODULE_SZ + mod_col] = true;
             }
 
             // format
@@ -103,13 +100,7 @@ int main(int argc, char **argv) {
                  ((mod_row == 8 && mod_col == 1) || (mod_row == MODULE_SZ - 2 && mod_col == 8))) ||  // 13
                 ((format & 0x4000) == 0x4000 &&
                  ((mod_row == 8 && mod_col == 0) || (mod_row == MODULE_SZ - 1 && mod_col == 8)))) {  // 14
-                pixel = BLACK;
-            }
-
-            for (size_t row = i * PIXEL_PER_MODULE; row < (i + 1) * PIXEL_PER_MODULE; ++row) {
-                for (size_t col = j * PIXEL_PER_MODULE; col < (j + 1) * PIXEL_PER_MODULE; ++col) {
-                    image.pixels[row * width + col] = pixel;
-                }
+                QRcode.modules[mod_row * MODULE_SZ + mod_col] = true;
             }
         }
     }
@@ -129,15 +120,9 @@ int main(int argc, char **argv) {
         bool bit_val = (byte & (0x80 >> byte_loc)) == (0x80 >> byte_loc);
 
         if (should_mask) {
-            pixel = bit_val ? WHITE : BLACK;
+            QRcode.modules[(row - 4) * MODULE_SZ + (col - 4)] = !bit_val;
         } else {
-            pixel = bit_val ? BLACK : WHITE;
-        }
-
-        for (size_t i = row * PIXEL_PER_MODULE; i < (row + 1) * PIXEL_PER_MODULE; ++i) {
-            for (size_t j = col * PIXEL_PER_MODULE; j < (col + 1) * PIXEL_PER_MODULE; ++j) {
-                image.pixels[i * width + j] = pixel;
-            }
+            QRcode.modules[(row - 4) * MODULE_SZ + (col - 4)] = bit_val;
         }
 
         if (left) {
@@ -196,6 +181,49 @@ int main(int argc, char **argv) {
             byte_loc++;
         }
     }
+
+	return QRcode;
+}
+
+image_t QRcodeToImage(QRcode_t QRcode) {
+    size_t width = (QRcode.width + 8) * PIXEL_PER_MODULE;
+    size_t height = (QRcode.height + 8) * PIXEL_PER_MODULE;
+    image_t image = init_image(width, height);
+    pixel_t pixel = WHITE;
+
+    for (size_t i = 0; i < height; ++i) {
+        for (size_t j = 0; j < width; ++j) {
+            if (i < 4 * PIXEL_PER_MODULE || j < 4 * PIXEL_PER_MODULE || i >= (QR_SZ - 4) * PIXEL_PER_MODULE ||
+                j >= (QR_SZ - 4) * PIXEL_PER_MODULE) {
+                pixel = WHITE;
+            } else {
+				size_t mod_row = i / PIXEL_PER_MODULE - 4;
+				size_t mod_col = j / PIXEL_PER_MODULE - 4;
+
+                pixel = QRcode.modules[mod_row * QRcode.width + mod_col] ? BLACK : WHITE;
+            }
+
+            image.pixels[i * width + j] = pixel;
+        }
+    }
+
+    return image;
+}
+
+int main(int argc, char **argv) {
+    image_t image;
+	QRcode_t QRcode;
+	const char *message;
+
+	if (argc == 2) {
+		message = argv[1];
+	} else {
+		message = "TEST123";
+	}
+
+	QRcode = generate_QRcode(message);
+
+    image = QRcodeToImage(QRcode);
 
     if (export_to_png("test.png", image) != 0) {
         perror("export");
