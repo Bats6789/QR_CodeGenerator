@@ -21,19 +21,36 @@ endif()
 add_library(image STATIC src/image_export.c)
 target_link_libraries(image ${PNG_LIBRARIES})
 
+add_library(reed_solomon STATIC src/reed_solomon.c)
+
+add_library(bch STATIC src/bch.c)
+target_link_libraries(bch m)
+
+add_library(QR_codeword STATIC src/QR_codewords.c src/codeword_lookup.c)
+
 # ===============Main executable========================
 add_executable(QRCode src/main.c)
-target_link_libraries(QRCode image m)
+target_link_libraries(QRCode image m reed_solomon bch QR_codeword)
 
 # ===================Tests==============================
-# Reed solomon
-add_executable(reed_solomon_test tests/reed_solomon_test.c)
+# Test binaries
+add_executable(reed_solomon_test tests/reed_solomon_test.c tests/test_utils.c)
+target_link_libraries(reed_solomon_test reed_solomon)
+
+add_executable(codeword_tests tests/codeword_tests.c tests/test_utils.c)
+target_link_libraries(codeword_tests QR_codeword)
 
 enable_testing()
 
 add_test(NAME reed_solomon_test COMMAND $<TARGET_FILE:reed_solomon_test>)
+add_test(NAME codeword_tests COMMAND $<TARGET_FILE:codeword_tests>)
 
 set_target_properties(reed_solomon_test
+	PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test
+)
+
+set_target_properties(codeword_tests
 	PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test
 )
