@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "QRcode.h"
+#include "image.h"
 #include "image_export.h"
 
 int main(int argc, char **argv) {
@@ -19,7 +20,7 @@ int main(int argc, char **argv) {
         message = "TEST123";
     }
 
-    QRcode = generate_QRcode(message);
+    QRcode = generate_QRcode(message, QR_L);
 
     image = QRcodeToImage(QRcode);
 

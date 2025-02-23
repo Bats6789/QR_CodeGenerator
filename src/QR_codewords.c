@@ -5,8 +5,7 @@
 #include "QR_codewords.h"
 #include "codeword_lookup.h"
 
-size_t generate_codewords(const char *message, int **codewords) {
-    size_t sz = 19;
+size_t generate_codewords(const char *message, size_t sz, int **codewords) {
     int mode = 0b0010;  // alphanumeric
     int *data = calloc(sz, sizeof *data);
     size_t byte_loc = 4;
