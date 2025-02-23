@@ -27,7 +27,7 @@ add_library(bch STATIC src/bch.c)
 target_link_libraries(bch m)
 
 add_library(QRcode STATIC src/QRcode.c src/QR_codewords.c src/codeword_lookup.c)
-target_link_libraries(QRcode bch reed_solomon)
+target_link_libraries(QRcode image bch reed_solomon)
 
 # ===============Main executable========================
 add_executable(QRCode src/main.c)

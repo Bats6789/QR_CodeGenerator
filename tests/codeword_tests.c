@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "QR_codewords.h"
+#include "QRcode.h"
 #include "codeword_lookup.h"
 #include "test_utils.h"
 
@@ -15,6 +16,7 @@ struct check_t {
 int main(int argc, char **argv) {
     // alphanumeric
     struct check_t alnum_check[45];
+	QR_version_params_t params = get_version_params(V1, QR_L);
     bool all_passed = true;
     int *codewords;
     size_t sz;
@@ -58,9 +60,10 @@ int main(int argc, char **argv) {
         }
     }
 
-    sz = generate_codewords("TEST123", &codewords);
 
-    if (sz != 19 || array_equal(expected, codewords, sz)) {
+    sz = generate_codewords("TEST123", params.blocks[0].data_sz, &codewords);
+
+    if (sz != params.blocks[0].data_sz || array_equal(expected, codewords, sz)) {
         fputs("Incorrect values\n", stderr);
         fputs("Expected: ", stderr);
         fprint_array(stderr, sizeof expected / sizeof *expected, expected);
