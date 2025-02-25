@@ -487,7 +487,7 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
     bool upwards = true;
     bool left = true;
 
-    while (!is_codewords_parsed(data_loc, ec_loc, params) || byte_loc != 7) {
+    while (!is_codewords_parsed(data_loc, ec_loc, params) || byte_loc != 8) {
         // bool should_mask = (row + col) % 2 == 0;
         bool should_mask = ((row*col) % 3 + row * col) % 2 == 0;
         bool bit_val = (byte & (0x80 >> byte_loc)) == (0x80 >> byte_loc);
@@ -559,15 +559,12 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
             }
         }
 
-        if (byte_loc == 7) {
+        if (byte_loc == 7 && !is_codewords_parsed(data_loc, ec_loc, params)) {
             if (is_data_parsed(data_loc, params) && !is_ec_parsed(ec_loc, params)) {
                 do {
                     block_loc = (block_loc + 1 == params.block_count) ? 0 : block_loc + 1;
                 } while (ec_loc[block_loc] == params.blocks[block_loc].err_sz);
                 byte = ec[block_loc][ec_loc[block_loc]++] & 0xFF;
-				if (block_loc == 1) {
-					goto stop;
-				}
                 byte_loc = 0;
             } else if (!is_data_parsed(data_loc, params)) {
                 do {
@@ -580,8 +577,6 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
             byte_loc++;
         }
     }
-
-stop:
 
     // format
     uint16_t format = get_format(recovery, MASK_6);
