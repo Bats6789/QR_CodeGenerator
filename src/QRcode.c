@@ -715,6 +715,7 @@ QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t ma
 
         QRcode.modules[row * sz + col].data = bit_val;
 
+		// move through the QR code for placing data
         if (left) {
             col--;
             left = false;
@@ -775,20 +776,20 @@ QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t ma
             }
         }
 
+		// grab the next bit/byte
         if (byte_loc == 7 && !is_codewords_parsed(data_loc, ec_loc, params)) {
             if (is_data_parsed(data_loc, params) && !is_ec_parsed(ec_loc, params)) {
                 do {
                     block_loc = (block_loc + 1 == params.block_count) ? 0 : block_loc + 1;
                 } while (ec_loc[block_loc] == params.blocks[block_loc].err_sz);
                 byte = ec[block_loc][ec_loc[block_loc]++] & 0xFF;
-                byte_loc = 0;
             } else if (!is_data_parsed(data_loc, params)) {
                 do {
                     block_loc = (block_loc + 1 == params.block_count) ? 0 : block_loc + 1;
                 } while (data_loc[block_loc] == params.blocks[block_loc].data_sz);
                 byte = data[block_loc][data_loc[block_loc]++] & 0xFF;
-                byte_loc = 0;
             }
+			byte_loc = 0;
         } else {
             byte_loc++;
         }
@@ -821,6 +822,7 @@ QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t ma
 
     place_format(QRcode, format);
 
+	// clean up
     for (size_t i = 0; i < params.block_count; ++i) {
         free(data[i]);
         free(ec[i]);
