@@ -31,3 +31,10 @@ int alphanumeric_lookup(char c) {
     }
     return -1;
 }
+
+int numeric_lookup(char c) {
+    if (isdigit(c)) {
+        return c - '0';
+    }
+    return -1;
+}

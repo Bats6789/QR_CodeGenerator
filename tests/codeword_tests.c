@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sz = generate_codewords("TEST123", &codewords);
+    sz = generate_codewords("TEST123", &codewords, V1, QR_L);
 	sz = pad_data(&codewords, sz, params.blocks[0].data_sz);
 
     if (sz != params.blocks[0].data_sz || array_equal(expected, codewords, sz)) {

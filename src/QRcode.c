@@ -614,7 +614,7 @@ QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t ma
     module_t default_off = {false, true};
 	size_t total_sz = 0;
 
-    needed_sz = generate_codewords(message, &codewords);
+    needed_sz = generate_codewords(message, &codewords, version, recovery);
 
     if (version == ANY_VERSION) {
         version = get_minimum_version(needed_sz, recovery);
