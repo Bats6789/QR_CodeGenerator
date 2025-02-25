@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	// Devide by zero bug
+	// Divide by zero bug
 	if (!run_test(sizeof data2 / sizeof *data2, data2, sizeof expected2 / sizeof *expected2, expected2)) {
 		return EXIT_FAILURE;
 	}
