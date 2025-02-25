@@ -63,18 +63,15 @@ size_t reed_solomon(size_t data_sz, int data[data_sz], size_t ec_sz, int **error
 
     for (size_t i = 0; i < data_sz; ++i) {
         int coef = buf[i];
-        for (size_t j = 1; j < ec_sz + 1; ++j) {
-            buf[i + j] ^= gf_exp[gf_log[gp[j]] + gf_log[coef]];
-        }
+		if (coef != 0) {
+			for (size_t j = 0; j < ec_sz + 1; ++j) {
+				buf[i + j] ^= gf_exp[gf_log[gp[j]] + gf_log[coef]];
+			}
+		}
     }
 
     memcpy(ec, buf + data_sz, sizeof *ec * ec_sz);
     *error_correction = ec;
-
-	puts("Gen");
-	for (size_t i = 0; i < ec_sz + 1; ++i) {
-		printf("%d%c", gf_log[gp[i]], i == ec_sz ? '\n' : ' ');
-	}
 
     free(buf);
     free(gp);

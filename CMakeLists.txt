@@ -26,12 +26,12 @@ add_library(reed_solomon STATIC src/reed_solomon.c)
 add_library(bch STATIC src/bch.c)
 target_link_libraries(bch m)
 
-add_library(QRcode STATIC src/QRcode.c src/QR_codewords.c src/codeword_lookup.c)
-target_link_libraries(QRcode image bch reed_solomon)
+add_library(QRcodeGen STATIC src/QRcode.c src/QR_codewords.c src/codeword_lookup.c)
+target_link_libraries(QRcodeGen image bch reed_solomon)
 
 # ===============Main executable========================
 add_executable(QRCode src/main.c)
-target_link_libraries(QRCode image m reed_solomon bch QRcode)
+target_link_libraries(QRCode image m reed_solomon bch QRcodeGen)
 
 # ===================Tests==============================
 # Test binaries
@@ -39,7 +39,7 @@ add_executable(reed_solomon_test tests/reed_solomon_test.c tests/test_utils.c)
 target_link_libraries(reed_solomon_test reed_solomon)
 
 add_executable(codeword_tests tests/codeword_tests.c tests/test_utils.c)
-target_link_libraries(codeword_tests QRcode)
+target_link_libraries(codeword_tests QRcodeGen)
 
 enable_testing()
 
