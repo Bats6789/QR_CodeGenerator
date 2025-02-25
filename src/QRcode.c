@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "QR_codewords.h"
@@ -7,59 +8,337 @@
 #include "reed_solomon.h"
 
 static void place_alignment(QRcode_t QRcode, QR_version_t version) {
-	size_t sz = 0;
-	size_t points[7];
-	module_t default_on = {true, true};
-	module_t default_off = {false, true};
+    size_t sz = 0;
+    size_t points[7];
+    module_t default_on = {true, true};
+    module_t default_off = {false, true};
 
-	// quite versions without alignment
-	switch (version) {
-		case V1:
-		case MV1:
-		case MV2:
-		case MV3:
-		case MV4:
-			return;
-		case V2:
-			points[sz++] = 6;
-			points[sz++] = 18;
-			break;
-		default:
-			break;
-	}
+    // quite versions without alignment
+    switch (version) {
+        case V1:
+        case MV1:
+        case MV2:
+        case MV3:
+        case MV4:
+            return;
+        case V2:
+            points[sz++] = 6;
+            points[sz++] = 18;
+            break;
+        case V3:
+            points[sz++] = 6;
+            points[sz++] = 22;
+            break;
+        case V4:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            break;
+        case V5:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            break;
+        case V6:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            break;
+        case V7:
+            points[sz++] = 6;
+            points[sz++] = 22;
+            points[sz++] = 38;
+            break;
+        case V8:
+            points[sz++] = 6;
+            points[sz++] = 24;
+            points[sz++] = 42;
+            break;
+        case V9:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 46;
+            break;
+        case V10:
+            points[sz++] = 6;
+            points[sz++] = 28;
+            points[sz++] = 50;
+            break;
+        case V11:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 54;
+            break;
+        case V12:
+            points[sz++] = 6;
+            points[sz++] = 32;
+            points[sz++] = 58;
+            break;
+        case V13:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            points[sz++] = 62;
+            break;
+        case V14:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 46;
+            points[sz++] = 66;
+            break;
+        case V15:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 48;
+            points[sz++] = 70;
+            break;
+        case V16:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 50;
+            points[sz++] = 74;
+            break;
+        case V17:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 54;
+            points[sz++] = 78;
+            break;
+        case V18:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 56;
+            points[sz++] = 82;
+            break;
+        case V19:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 58;
+            points[sz++] = 86;
+            break;
+        case V20:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            points[sz++] = 62;
+            points[sz++] = 90;
+            break;
+        case V21:
+            points[sz++] = 6;
+            points[sz++] = 28;
+            points[sz++] = 50;
+            points[sz++] = 72;
+            points[sz++] = 94;
+            break;
+        case V22:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 50;
+            points[sz++] = 74;
+            points[sz++] = 98;
+            break;
+        case V23:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 54;
+            points[sz++] = 78;
+            points[sz++] = 102;
+            break;
+        case V24:
+            points[sz++] = 6;
+            points[sz++] = 28;
+            points[sz++] = 54;
+            points[sz++] = 80;
+            points[sz++] = 106;
+            break;
+        case V25:
+            points[sz++] = 6;
+            points[sz++] = 32;
+            points[sz++] = 58;
+            points[sz++] = 84;
+            points[sz++] = 110;
+            break;
+        case V26:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 58;
+            points[sz++] = 86;
+            points[sz++] = 114;
+            break;
+        case V27:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            points[sz++] = 62;
+            points[sz++] = 90;
+            points[sz++] = 118;
+            break;
+        case V28:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 50;
+            points[sz++] = 74;
+            points[sz++] = 98;
+            points[sz++] = 122;
+            break;
+        case V29:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 54;
+            points[sz++] = 78;
+            points[sz++] = 102;
+            points[sz++] = 126;
+            break;
+        case V30:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 52;
+            points[sz++] = 78;
+            points[sz++] = 104;
+            points[sz++] = 130;
+            break;
+        case V31:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 56;
+            points[sz++] = 82;
+            points[sz++] = 118;
+            points[sz++] = 134;
+            break;
+        case V32:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            points[sz++] = 60;
+            points[sz++] = 86;
+            points[sz++] = 112;
+            points[sz++] = 138;
+            break;
+        case V33:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 58;
+            points[sz++] = 86;
+            points[sz++] = 114;
+            points[sz++] = 142;
+            break;
+        case V34:
+            points[sz++] = 6;
+            points[sz++] = 34;
+            points[sz++] = 62;
+            points[sz++] = 90;
+            points[sz++] = 118;
+            points[sz++] = 146;
+            break;
+        case V35:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 54;
+            points[sz++] = 78;
+            points[sz++] = 102;
+            points[sz++] = 126;
+            points[sz++] = 150;
+            break;
+        case V36:
+            points[sz++] = 6;
+            points[sz++] = 24;
+            points[sz++] = 50;
+            points[sz++] = 76;
+            points[sz++] = 102;
+            points[sz++] = 128;
+            points[sz++] = 154;
+            break;
+        case V37:
+            points[sz++] = 6;
+            points[sz++] = 28;
+            points[sz++] = 54;
+            points[sz++] = 80;
+            points[sz++] = 106;
+            points[sz++] = 132;
+            points[sz++] = 158;
+            break;
+        case V38:
+            points[sz++] = 6;
+            points[sz++] = 32;
+            points[sz++] = 58;
+            points[sz++] = 84;
+            points[sz++] = 110;
+            points[sz++] = 136;
+            points[sz++] = 162;
+            break;
+        case V39:
+            points[sz++] = 6;
+            points[sz++] = 26;
+            points[sz++] = 54;
+            points[sz++] = 82;
+            points[sz++] = 110;
+            points[sz++] = 138;
+            points[sz++] = 166;
+            break;
+        case V40:
+            points[sz++] = 6;
+            points[sz++] = 30;
+            points[sz++] = 58;
+            points[sz++] = 86;
+            points[sz++] = 114;
+            points[sz++] = 142;
+            points[sz++] = 170;
+            break;
+        default:
+            break;
+    }
 
-	for (size_t i = 0; i < sz; ++i) {
-		for (size_t j = 0; j < sz; ++j) {
-			size_t row = points[i];
-			size_t col = points[i];
+    for (size_t i = 0; i < sz; ++i) {
+        for (size_t j = 0; j < sz; ++j) {
+            size_t row = points[i];
+            size_t col = points[j];
 
-			// exclude finder patterns
-			if ((row < 8 && col < 8) || (row < 8 && col >= QRcode.width - 8) || (row >= QRcode.height - 8 && col < 8)) {
-				continue;
-			}
+            // exclude finder patterns
+            if ((row < 8 && col < 8) || (row < 8 && col >= QRcode.width - 8) || (row >= QRcode.height - 8 && col < 8)) {
+                continue;
+            }
 
-			for (size_t k = 0; k < 5; ++k) {
-				QRcode.modules[(row - 2) * QRcode.width + (col - 2) + k] = default_on;
-				QRcode.modules[(row - 1) * QRcode.width + (col - 2) + k] = (k == 0 || k == 4) ? default_on : default_off;
-				QRcode.modules[row * QRcode.width + (col - 2) + k] = (k == 1 || k == 3) ? default_off : default_on;
-				QRcode.modules[(row + 1) * QRcode.width + (col - 2) + k] = (k == 0 || k == 4) ? default_on : default_off;
-				QRcode.modules[(row + 2) * QRcode.width + (col - 2) + k] = default_on;
-			}
-		}
-	}
+            for (size_t k = 0; k < 5; ++k) {
+                QRcode.modules[(row - 2) * QRcode.width + (col - 2) + k] = default_on;
+                QRcode.modules[(row - 1) * QRcode.width + (col - 2) + k] =
+                    (k == 0 || k == 4) ? default_on : default_off;
+                QRcode.modules[row * QRcode.width + (col - 2) + k] = (k == 1 || k == 3) ? default_off : default_on;
+                QRcode.modules[(row + 1) * QRcode.width + (col - 2) + k] =
+                    (k == 0 || k == 4) ? default_on : default_off;
+                QRcode.modules[(row + 2) * QRcode.width + (col - 2) + k] = default_on;
+            }
+        }
+    }
+}
+
+static bool is_ec_parsed(size_t *ec_loc, QR_version_params_t params) {
+    for (size_t i = 0; i < params.block_count; ++i) {
+        if (ec_loc[i] != params.blocks[i].err_sz) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool is_data_parsed(size_t *data_loc, QR_version_params_t params) {
+    for (size_t i = 0; i < params.block_count; ++i) {
+        if (data_loc[i] != params.blocks[i].data_sz) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool is_codewords_parsed(size_t *data_loc, size_t *ec_loc, QR_version_params_t params) {
+    return is_data_parsed(data_loc, params) && is_ec_parsed(ec_loc, params);
 }
 
 QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
-    int *ec;
-    size_t ec_sz;
-    int *data = NULL;
+    int **ec;
+    int **data = NULL;
     QRcode_t QRcode;
-    size_t data_loc = 0;
-    size_t ec_loc = 0;
+    size_t *data_loc = NULL;
+    size_t *ec_loc = NULL;
     size_t byte_loc = 0;
+    size_t block_loc = 0;
     module_t default_on = {true, true};
     module_t default_off = {false, true};
-	QR_version_t version = V2;
+    QR_version_t version = V7;
     size_t sz = get_QR_size(version);
     size_t row = sz - 1;
     size_t col = sz - 1;
@@ -74,11 +353,34 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
 
     QR_version_params_t params = get_version_params(version, recovery);
 
-    size_t data_sz = generate_codewords(message, params.blocks[0].data_sz, &data);
-    uint8_t byte = data[data_loc++] & 0xFF;
+    data = malloc(sizeof *data * params.block_count);
+    ec = malloc(sizeof *ec * params.block_count);
+    data_loc = calloc(params.block_count, sizeof *data_loc);
+    ec_loc = calloc(params.block_count, sizeof *ec_loc);
+
+	size_t total_data = 0;
+	for (size_t i = 0; i < params.block_count; ++i) {
+		total_data += params.blocks[i].data_sz;
+	}
+	int *tmp;
+	generate_codewords(message, total_data, &tmp);
+
+	size_t shift = 0;
+	for (size_t i = 0; i < params.block_count; ++i) {
+		data[i] = malloc(sizeof **data * params.blocks[i].data_sz);
+		for (size_t j = 0; j < params.blocks[i].data_sz; ++j) {
+			data[i][j] = tmp[shift + j];
+		}
+		shift += params.blocks[i].data_sz;
+	}
 
     calculate_table();
-    ec_sz = reed_solomon(data_sz, data, params.blocks[0].err_sz, &ec);
+
+    for (size_t i = 0; i < params.block_count; ++i) {
+        reed_solomon(params.blocks[i].data_sz, data[i], params.blocks[i].err_sz, ec + i);
+    }
+
+    uint8_t byte = data[0][data_loc[0]++] & 0xFF;
 
     // finder pattern
     for (size_t i = 0; i < 7; ++i) {
@@ -133,7 +435,7 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
         QRcode.modules[(8 + i) * sz + 6] = (i & 1) == 1 ? default_off : default_on;
     }
 
-	place_alignment(QRcode, version);
+    place_alignment(QRcode, version);
 
     // reserve format from data
     // Note: The positions are hardcoded due to awkward skips for the first
@@ -172,11 +474,22 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
     QRcode.modules[(sz - 2) * sz + 8] = default_off;
     QRcode.modules[(sz - 1) * sz + 8] = default_off;
 
+    // reserve version from data if V7 or higher
+	if (version >= V7) {
+		for (size_t i = 0; i < 6; ++i) {
+			for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
+				QRcode.modules[j * sz + i] = default_off;
+				QRcode.modules[i * sz + j] = default_off;
+			}
+		}
+	}
+
     bool upwards = true;
     bool left = true;
 
-    while (data_loc != data_sz || ec_loc != ec_sz || byte_loc != 7) {
-        bool should_mask = (row + col) % 2 == 0;
+    while (!is_codewords_parsed(data_loc, ec_loc, params) || byte_loc != 7) {
+        // bool should_mask = (row + col) % 2 == 0;
+        bool should_mask = ((row*col) % 3 + row * col) % 2 == 0;
         bool bit_val = (byte & (0x80 >> byte_loc)) == (0x80 >> byte_loc);
 
         if (should_mask) {
@@ -203,9 +516,13 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
 
                     if (row == 0 && QRcode.modules[row * sz + col].used) {
                         upwards = false;
-                        col -= col == 7 ? 2 : 1;
-                        while (QRcode.modules[++row * sz + col].used) {
-                        }
+						if (version >= V7 && col == QRcode.width - 10) {
+							col--;
+						} else {
+							col -= col == 7 ? 2 : 1;
+							while (QRcode.modules[++row * sz + col].used) {
+							}
+						}
                     } else {
                         col++;
                     }
@@ -243,11 +560,20 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
         }
 
         if (byte_loc == 7) {
-            if (data_loc == data_sz && ec_loc != ec_sz) {
-                byte = ec[ec_loc++];
+            if (is_data_parsed(data_loc, params) && !is_ec_parsed(ec_loc, params)) {
+                do {
+                    block_loc = (block_loc + 1 == params.block_count) ? 0 : block_loc + 1;
+                } while (ec_loc[block_loc] == params.blocks[block_loc].err_sz);
+                byte = ec[block_loc][ec_loc[block_loc]++] & 0xFF;
+				if (block_loc == 1) {
+					goto stop;
+				}
                 byte_loc = 0;
-            } else if (data_loc != data_sz) {
-                byte = data[data_loc++];
+            } else if (!is_data_parsed(data_loc, params)) {
+                do {
+                    block_loc = (block_loc + 1 == params.block_count) ? 0 : block_loc + 1;
+                } while (data_loc[block_loc] == params.blocks[block_loc].data_sz);
+                byte = data[block_loc][data_loc[block_loc]++] & 0xFF;
                 byte_loc = 0;
             }
         } else {
@@ -255,9 +581,11 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
         }
     }
 
+stop:
+
     // format
-    uint16_t format = get_format(recovery, MASK_0);
-    QRcode.modules[(4 * QR_VERSION + 9) * QRcode.width + 8] = default_on;  // Dark module
+    uint16_t format = get_format(recovery, MASK_6);
+    QRcode.modules[(4 * version + 9) * QRcode.width + 8] = default_on;  // Dark module
 
     // Note: The positions are hardcoded due to awkward skips for the first
     //       batch (top left). So the second batch is copied for consistency
@@ -294,6 +622,29 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
     QRcode.modules[(sz - 3) * sz + 8] = (format & 0x1000) == 0x1000 ? default_on : default_off;
     QRcode.modules[(sz - 2) * sz + 8] = (format & 0x2000) == 0x2000 ? default_on : default_off;
     QRcode.modules[(sz - 1) * sz + 8] = (format & 0x4000) == 0x4000 ? default_on : default_off;
+	
+	// version
+	if (version >= V7) {
+		byte_loc = 0;
+		uint32_t version_data = get_version(version);
+		for (size_t i = 0; i < 6; ++i) {
+			for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
+				bool bit_val = (version_data & (0x1 << byte_loc)) == (0x1 << byte_loc);
+				QRcode.modules[i * sz + j] = bit_val ? default_on : default_off;
+				QRcode.modules[j * sz + i] = bit_val ? default_on : default_off;
+				byte_loc++;
+			}
+		}
+	}
+
+    for (size_t i = 0; i < params.block_count; ++i) {
+        free(data[i]);
+        free(ec[i]);
+    }
+    free(data);
+    free(ec);
+	free(data_loc);
+	free(ec_loc);
 
     return QRcode;
 }
@@ -326,6 +677,10 @@ image_t QRcodeToImage(QRcode_t QRcode) {
 uint16_t get_format(QR_recovery_t recovery, QR_mask_t mask) {
     uint16_t format_val = (recovery << 3) + mask;
     return ((format_val << 10) + BCH(format_val)) ^ FORMAT_XOR_MASK;
+}
+
+uint32_t get_version(QR_version_t version) {
+	return (version << 12) + golay(version);
 }
 
 inline size_t get_QR_size(QR_version_t QR_version) { return 17 + 4 * QR_version; }

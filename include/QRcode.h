@@ -7,7 +7,6 @@
 #include "image.h"
 
 #define PIXEL_PER_MODULE 14
-#define QR_VERSION 1
 
 #define ERROR_CORRECTION 1
 #define MASK 0
@@ -108,6 +107,7 @@ typedef struct QR_version_params_t {
 QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery);
 image_t QRcodeToImage(QRcode_t QRcode);
 uint16_t get_format(QR_recovery_t recovery, QR_mask_t mask);
+uint32_t get_version(QR_version_t version);
 QR_version_params_t get_version_params(QR_version_t QR_version, QR_recovery_t recover);
 size_t get_QR_size(QR_version_t QR_version);
 
