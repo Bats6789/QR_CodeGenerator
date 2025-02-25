@@ -33,7 +33,8 @@ typedef enum QR_mask_t {
     M_MASK_0 = 0b00,
     M_MASK_1 = 0b01,
     M_MASK_2 = 0b10,
-    M_MASK_3 = 0b11
+    M_MASK_3 = 0b11,
+	ANY_MASK = -1
 } QR_mask_t;
 
 typedef enum QR_version_t {
@@ -80,7 +81,9 @@ typedef enum QR_version_t {
     MV1 = 41,
     MV2 = 42,
     MV3 = 43,
-    MV4 = 44
+    MV4 = 44,
+	ANY_VERSION = 45,
+	INVALID_VERSION = -1
 } QR_version_t;
 
 typedef struct module_t {
@@ -104,11 +107,12 @@ typedef struct QR_version_params_t {
 	QRblock_t blocks[81];
 } QR_version_params_t;
 
-QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery);
+QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t mask, QR_recovery_t recovery);
 image_t QRcodeToImage(QRcode_t QRcode);
 uint16_t get_format(QR_recovery_t recovery, QR_mask_t mask);
 uint32_t get_version(QR_version_t version);
 QR_version_params_t get_version_params(QR_version_t QR_version, QR_recovery_t recover);
 size_t get_QR_size(QR_version_t QR_version);
+QR_version_t get_minimum_version(size_t data_sz, QR_recovery_t recovery);
 
 #endif /* end of header guard: __QRCODE_H__ */
