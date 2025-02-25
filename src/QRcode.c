@@ -1,5 +1,7 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "QR_codewords.h"
 #include "QRcode.h"
@@ -7,6 +9,7 @@
 #include "image.h"
 #include "reed_solomon.h"
 
+// private functions
 static void place_alignment(QRcode_t QRcode, QR_version_t version) {
     size_t sz = 0;
     size_t points[7];
@@ -304,6 +307,64 @@ static void place_alignment(QRcode_t QRcode, QR_version_t version) {
     }
 }
 
+static void place_finder(QRcode_t QRcode, size_t start_row, size_t start_col) {
+    module_t default_off = {false, true};
+    module_t default_on = {true, true};
+    size_t width = QRcode.width;
+
+    for (size_t i = 0; i < 7; ++i) {
+        QRcode.modules[start_row * width + start_col + i] = default_on;
+        QRcode.modules[(start_row + 1) * width + start_col + i] = (i == 0 || i == 6) ? default_on : default_off;
+        QRcode.modules[(start_row + 2) * width + start_col + i] = (i == 1 || i == 5) ? default_off : default_on;
+        QRcode.modules[(start_row + 3) * width + start_col + i] = (i == 1 || i == 5) ? default_off : default_on;
+        QRcode.modules[(start_row + 4) * width + start_col + i] = (i == 1 || i == 5) ? default_off : default_on;
+        QRcode.modules[(start_row + 5) * width + start_col + i] = (i == 0 || i == 6) ? default_on : default_off;
+        QRcode.modules[(start_row + 6) * width + start_col + i] = default_on;
+    }
+}
+
+static void place_format(QRcode_t QRcode, uint16_t format) {
+    size_t width = QRcode.width;
+    module_t default_on = {true, true};
+    module_t default_off = {false, true};
+
+    // Note: The positions are hard-coded due to awkward skips for the first
+    //       batch (top left). So the second batch is copied for consistency
+    // top left
+    QRcode.modules[8] = (format & 0x1) == 0x1 ? default_on : default_off;
+    QRcode.modules[width + 8] = (format & 0x2) == 0x2 ? default_on : default_off;
+    QRcode.modules[2 * width + 8] = (format & 0x4) == 0x4 ? default_on : default_off;
+    QRcode.modules[3 * width + 8] = (format & 0x8) == 0x8 ? default_on : default_off;
+    QRcode.modules[4 * width + 8] = (format & 0x10) == 0x10 ? default_on : default_off;
+    QRcode.modules[5 * width + 8] = (format & 0x20) == 0x20 ? default_on : default_off;
+    QRcode.modules[7 * width + 8] = (format & 0x40) == 0x40 ? default_on : default_off;
+    QRcode.modules[8 * width + 8] = (format & 0x80) == 0x80 ? default_on : default_off;
+    QRcode.modules[8 * width + 7] = (format & 0x100) == 0x100 ? default_on : default_off;
+    QRcode.modules[8 * width + 5] = (format & 0x200) == 0x200 ? default_on : default_off;
+    QRcode.modules[8 * width + 4] = (format & 0x400) == 0x400 ? default_on : default_off;
+    QRcode.modules[8 * width + 3] = (format & 0x800) == 0x800 ? default_on : default_off;
+    QRcode.modules[8 * width + 2] = (format & 0x1000) == 0x1000 ? default_on : default_off;
+    QRcode.modules[8 * width + 1] = (format & 0x2000) == 0x2000 ? default_on : default_off;
+    QRcode.modules[8 * width] = (format & 0x4000) == 0x4000 ? default_on : default_off;
+
+    // split (bottom left and top right)
+    QRcode.modules[9 * width - 1] = (format & 0x1) == 0x1 ? default_on : default_off;
+    QRcode.modules[9 * width - 2] = (format & 0x2) == 0x2 ? default_on : default_off;
+    QRcode.modules[9 * width - 3] = (format & 0x4) == 0x4 ? default_on : default_off;
+    QRcode.modules[9 * width - 4] = (format & 0x8) == 0x8 ? default_on : default_off;
+    QRcode.modules[9 * width - 5] = (format & 0x10) == 0x10 ? default_on : default_off;
+    QRcode.modules[9 * width - 6] = (format & 0x20) == 0x20 ? default_on : default_off;
+    QRcode.modules[9 * width - 7] = (format & 0x40) == 0x40 ? default_on : default_off;
+    QRcode.modules[9 * width - 8] = (format & 0x80) == 0x80 ? default_on : default_off;
+    QRcode.modules[(width - 7) * width + 8] = (format & 0x100) == 0x100 ? default_on : default_off;
+    QRcode.modules[(width - 6) * width + 8] = (format & 0x200) == 0x200 ? default_on : default_off;
+    QRcode.modules[(width - 5) * width + 8] = (format & 0x400) == 0x400 ? default_on : default_off;
+    QRcode.modules[(width - 4) * width + 8] = (format & 0x800) == 0x800 ? default_on : default_off;
+    QRcode.modules[(width - 3) * width + 8] = (format & 0x1000) == 0x1000 ? default_on : default_off;
+    QRcode.modules[(width - 2) * width + 8] = (format & 0x2000) == 0x2000 ? default_on : default_off;
+    QRcode.modules[(width - 1) * width + 8] = (format & 0x4000) == 0x4000 ? default_on : default_off;
+}
+
 static bool is_ec_parsed(size_t *ec_loc, QR_version_params_t params) {
     for (size_t i = 0; i < params.block_count; ++i) {
         if (ec_loc[i] != params.blocks[i].err_sz) {
@@ -328,51 +389,272 @@ static bool is_codewords_parsed(size_t *data_loc, size_t *ec_loc, QR_version_par
     return is_data_parsed(data_loc, params) && is_ec_parsed(ec_loc, params);
 }
 
-QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
-    int **ec;
+static bool get_mask_val(QR_mask_t mask, size_t row, size_t col) {
+    switch (mask) {
+        case MASK_0:
+			return (row + col) % 2== 0;
+        case MASK_1:
+			return row % 2 == 0;
+        case MASK_2:
+			return col % 3 == 0;
+        case MASK_3:
+			return (row + col) % 3 == 0;
+        case MASK_4:
+			return ((row / 2) + (col / 3)) % 2 == 0;
+        case MASK_5:
+			return (row * col) % 2 + (row * col) % 3 == 0;
+        case MASK_6:
+			return ((row * col) % 3 + row * col) % 2 == 0;
+        case MASK_7:
+			return ((row * col) % 3 + row + col) % 2 == 0;
+        case ANY_MASK:
+            break;
+    }
+    return false;
+}
+
+static void apply_mask(QRcode_t QRcode, QR_mask_t mask) {
+	div_t res;
+	for (size_t i = 0; i < QRcode.width * QRcode.height; ++i) {
+		if (!QRcode.modules[i].used) {
+			res = div(i, QRcode.width);
+			QRcode.modules[i].data ^= get_mask_val(mask, res.quot, res.rem);
+		}
+	}
+}
+
+// Scoring is broken down into four metrics
+//
+// N1: For every consecutive run of colors greater than or equal to 5, apply a 3 + i penalty,
+//		where i is each module greater than 5. e.g., if there is a run of 7 blacks, than
+//		the penalty score is 5 (3 + 2)
+// N2: For every 2x2 block of the same color, add 3 points. This includes nested 2x2.
+//		e.g., if there is a 3x3 section of black squares, that will evaluate to 12 points (3 x 4 blocks)
+// N3: If a light area of 4 modules exists after a 1:1:3:1:1 (finder pattern), then add 40 points.
+//		I assume this is to help avoid the appearance of nested finder patterns. This should be checked
+//		horizontally and vertically
+// N4: Give a 10 point penalty for every 5% deviation from a ratio of 50% between black and white.
+//		e.g., if the symbol has a ratio of 55%, no points are added, but 44% would receive a 10
+//		point penalty. Likewise, 66% would also receive a 10 point penalty. 40% would also receive
+//		only a 10 point penalty, but 39% would receive a 20 point penalty.
+static int get_QR_score(QRcode_t QRcode) {
+	int score = 0;
+	bool last_seen_row_bit = true; // for bit will always be black due to the finder pattern
+	size_t row_run_count = 0;
+	bool last_seen_col_bit = true; // for bit will always be black due to the finder pattern
+	size_t col_run_count = 0;
+	size_t width = QRcode.width;
+	size_t height = QRcode.height;
+	bool N3_forward_check[11] = {true, false, true, true, true, false, true, false, false, false, false};
+	bool N3_backward_check[11] = {false, false, false, false, true, false, true, true, true, false, true};
+	bool match_for_vert = false;
+	bool match_for_horz = false;
+	bool match_back_vert = false;
+	bool match_back_horz = false;
+	size_t black_count = 0;
+	size_t white_count = 0;
+	int ratio = 0.0;
+
+	for (size_t i = 0; i < height; ++i) {
+		row_run_count = 0;
+		col_run_count = 0;
+		for (size_t j = 0; j < width; ++j) {
+			// N1
+			// horizontal segments
+			if (last_seen_row_bit == QRcode.modules[i * width + j].data) {
+				row_run_count++;
+			} else {
+				if (row_run_count >= 5) {
+					score += (row_run_count - 5) + 3;
+				}
+				row_run_count = 1;
+				last_seen_row_bit = QRcode.modules[i * width + j].data;
+			}
+
+			// vertical segments
+			if (last_seen_col_bit == QRcode.modules[j * width + i].data) {
+				col_run_count++;
+			} else {
+				if (col_run_count >= 5) {
+					score += (col_run_count - 5) + 3;
+				}
+				col_run_count = 1;
+				last_seen_col_bit = QRcode.modules[j * width + i].data;
+			}
+
+			// N2
+			if (i + 1 != height && j + 1 != width) {
+				if (QRcode.modules[i * width + j].data == QRcode.modules[i * width + j + 1].data &&
+					QRcode.modules[i * width + j].data == QRcode.modules[(i + 1) * width + j].data &&
+					QRcode.modules[i * width + j].data == QRcode.modules[(i + 1) * width + j + 1].data) {
+					score += 3;
+				}
+			}
+
+			// N3
+			match_for_horz = true;
+			match_for_vert = true;
+			match_back_horz = true;
+			match_back_vert = true;
+			if (j >= 10) {
+				for (size_t k = 0; k < 11; ++k) {
+					// check horizontally
+					if (QRcode.modules[i * width + j - 10 + k].data != N3_forward_check[k]) {
+						match_for_horz = false;
+					}
+					if (QRcode.modules[i * width + j - 10 + k].data != N3_backward_check[k]) {
+						match_back_horz = false;
+					}
+					// check vertically
+					if (QRcode.modules[(j - 10 + k) * width + i].data != N3_forward_check[k]) {
+						match_for_vert = false;
+					}
+					if (QRcode.modules[(j - 10 + k) * width + i].data != N3_backward_check[k]) {
+						match_back_vert = false;
+					}
+				}
+			}
+
+			if (match_for_vert) {
+				score += 40;
+			}
+			if (match_for_horz) {
+				score += 40;
+			}
+			if (match_back_vert) {
+				score += 40;
+			}
+			if (match_back_horz) {
+				score += 40;
+			}
+
+			// N4 count
+			if (QRcode.modules[i * width + j].data) {
+				black_count++;
+			} else {
+				white_count++;
+			}
+		}
+		// run resets each new row
+		if (row_run_count >= 5) {
+			score += (row_run_count - 5) + 3;
+		}
+		row_run_count = 0;
+
+		// if it is not the last segment, grab the next bit
+		if (i + 1 != QRcode.height) {
+			last_seen_row_bit = QRcode.modules[(i + 1) * QRcode.width].data;
+		}
+
+		// run resets each new col
+		if (col_run_count >= 5) {
+			score += (col_run_count - 5) + 3;
+		}
+		col_run_count = 0;
+
+		// if it is not the last segment, grab the next bit
+		if (i + 1 != QRcode.width) {
+			last_seen_col_bit = QRcode.modules[i + 1].data;
+		}
+	}
+
+	// N4 score
+	ratio = (int)(100.0 * ((double)black_count / white_count));
+
+	if (abs(ratio - 50) > 5) {
+		score += 10 * ((int)ceil(abs(ratio - 50) / 5.0) - 1);
+	}
+
+	return score;;
+}
+
+static QR_mask_t determine_mask(QRcode_t QRcode) {
+	int min = INT_MAX;
+	int score = 0;
+	QR_mask_t max_mask = ANY_MASK;
+	QRcode_t QRcopy = {QRcode.width, QRcode.height, NULL};
+
+	QRcopy.modules = malloc(sizeof *QRcopy.modules * QRcopy.width * QRcopy.width);
+
+	for (QR_mask_t i = MASK_0; i <= MASK_7; ++i) {
+		memcpy(QRcopy.modules, QRcode.modules, sizeof *QRcode.modules * QRcode.width * QRcode.width);
+		apply_mask(QRcopy, i);
+
+		score = get_QR_score(QRcopy);
+
+		if (score < min) {
+			min = score;
+			max_mask = i;
+		}
+	}
+
+	free(QRcopy.modules);
+
+	return max_mask;
+}
+
+// public functions
+QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t mask, QR_recovery_t recovery) {
+    bool upwards = true;
+    bool left = true;
+    int **ec = NULL;
     int **data = NULL;
-    QRcode_t QRcode;
+    int *codewords = NULL;
     size_t *data_loc = NULL;
     size_t *ec_loc = NULL;
     size_t byte_loc = 0;
     size_t block_loc = 0;
+    size_t sz = 0;
+    size_t row = 0;
+    size_t col = 0;
+    size_t needed_sz = 0;
+    size_t shift = 0;
+    QRcode_t QRcode;
     module_t default_on = {true, true};
     module_t default_off = {false, true};
-    QR_version_t version = V7;
-    size_t sz = get_QR_size(version);
-    size_t row = sz - 1;
-    size_t col = sz - 1;
+	size_t total_sz = 0;
+
+    needed_sz = generate_codewords(message, &codewords);
+
+    if (version == ANY_VERSION) {
+        version = get_minimum_version(needed_sz, recovery);
+    }
+
+    if (version == INVALID_VERSION) {
+        return (QRcode_t){0, 0, NULL};
+    }
+
+    sz = get_QR_size(version);
 
     QRcode.width = sz;
     QRcode.height = sz;
     QRcode.modules = malloc(sizeof *QRcode.modules * sz * sz);
 
+    // initialize QRcode to empty
     for (size_t i = 0; i < sz * sz; ++i) {
         QRcode.modules[i] = (module_t){false, false};
     }
 
     QR_version_params_t params = get_version_params(version, recovery);
 
+	for (size_t i = 0; i < params.block_count; ++i) {
+		total_sz += params.blocks[i].data_sz;
+	}
+
+	pad_data(&codewords, needed_sz, total_sz);
+
     data = malloc(sizeof *data * params.block_count);
     ec = malloc(sizeof *ec * params.block_count);
     data_loc = calloc(params.block_count, sizeof *data_loc);
     ec_loc = calloc(params.block_count, sizeof *ec_loc);
 
-	size_t total_data = 0;
-	for (size_t i = 0; i < params.block_count; ++i) {
-		total_data += params.blocks[i].data_sz;
-	}
-	int *tmp;
-	generate_codewords(message, total_data, &tmp);
-
-	size_t shift = 0;
-	for (size_t i = 0; i < params.block_count; ++i) {
-		data[i] = malloc(sizeof **data * params.blocks[i].data_sz);
-		for (size_t j = 0; j < params.blocks[i].data_sz; ++j) {
-			data[i][j] = tmp[shift + j];
-		}
-		shift += params.blocks[i].data_sz;
-	}
+    for (size_t i = 0; i < params.block_count; ++i) {
+        data[i] = malloc(sizeof **data * params.blocks[i].data_sz);
+        for (size_t j = 0; j < params.blocks[i].data_sz; ++j) {
+            data[i][j] = codewords[shift + j];
+        }
+        shift += params.blocks[i].data_sz;
+    }
 
     calculate_table();
 
@@ -383,34 +665,9 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
     uint8_t byte = data[0][data_loc[0]++] & 0xFF;
 
     // finder pattern
-    for (size_t i = 0; i < 7; ++i) {
-        // top left
-        QRcode.modules[i] = default_on;
-        QRcode.modules[sz + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[2 * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[3 * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[4 * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[5 * sz + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[6 * sz + i] = default_on;
-
-        // top right
-        QRcode.modules[sz - 7 + i] = default_on;
-        QRcode.modules[2 * sz - 7 + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[3 * sz - 7 + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[4 * sz - 7 + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[5 * sz - 7 + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[6 * sz - 7 + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[7 * sz - 7 + i] = default_on;
-
-        // bottom left
-        QRcode.modules[(QRcode.height - 7) * sz + i] = default_on;
-        QRcode.modules[(QRcode.height - 6) * sz + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[(QRcode.height - 5) * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[(QRcode.height - 4) * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[(QRcode.height - 3) * sz + i] = (i == 1 || i == 5) ? default_off : default_on;
-        QRcode.modules[(QRcode.height - 2) * sz + i] = (i == 0 || i == 6) ? default_on : default_off;
-        QRcode.modules[(QRcode.height - 1) * sz + i] = default_on;
-    }
+    place_finder(QRcode, 0, 0);
+    place_finder(QRcode, 0, sz - 7);
+    place_finder(QRcode, sz - 7, 0);
 
     // buffer around finder
     for (size_t i = 0; i < 8; ++i) {
@@ -438,66 +695,25 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
     place_alignment(QRcode, version);
 
     // reserve format from data
-    // Note: The positions are hardcoded due to awkward skips for the first
-    //       batch (top left). So the second batch is copied for consistency
-    // top left
-    QRcode.modules[8] = default_off;
-    QRcode.modules[sz + 8] = default_off;
-    QRcode.modules[2 * sz + 8] = default_off;
-    QRcode.modules[3 * sz + 8] = default_off;
-    QRcode.modules[4 * sz + 8] = default_off;
-    QRcode.modules[5 * sz + 8] = default_off;
-    QRcode.modules[7 * sz + 8] = default_off;
-    QRcode.modules[8 * sz + 8] = default_off;
-    QRcode.modules[8 * sz + 7] = default_off;
-    QRcode.modules[8 * sz + 5] = default_off;
-    QRcode.modules[8 * sz + 4] = default_off;
-    QRcode.modules[8 * sz + 3] = default_off;
-    QRcode.modules[8 * sz + 2] = default_off;
-    QRcode.modules[8 * sz + 1] = default_off;
-    QRcode.modules[8 * sz] = default_off;
-
-    // split (bottom left and top right)
-    QRcode.modules[9 * sz - 1] = default_off;
-    QRcode.modules[9 * sz - 2] = default_off;
-    QRcode.modules[9 * sz - 3] = default_off;
-    QRcode.modules[9 * sz - 4] = default_off;
-    QRcode.modules[9 * sz - 5] = default_off;
-    QRcode.modules[9 * sz - 6] = default_off;
-    QRcode.modules[9 * sz - 7] = default_off;
-    QRcode.modules[9 * sz - 8] = default_off;
-    QRcode.modules[(sz - 7) * sz + 8] = default_off;
-    QRcode.modules[(sz - 6) * sz + 8] = default_off;
-    QRcode.modules[(sz - 5) * sz + 8] = default_off;
-    QRcode.modules[(sz - 4) * sz + 8] = default_off;
-    QRcode.modules[(sz - 3) * sz + 8] = default_off;
-    QRcode.modules[(sz - 2) * sz + 8] = default_off;
-    QRcode.modules[(sz - 1) * sz + 8] = default_off;
+    place_format(QRcode, 0);
 
     // reserve version from data if V7 or higher
-	if (version >= V7) {
-		for (size_t i = 0; i < 6; ++i) {
-			for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
-				QRcode.modules[j * sz + i] = default_off;
-				QRcode.modules[i * sz + j] = default_off;
-			}
-		}
-	}
+    if (version >= V7) {
+        for (size_t i = 0; i < 6; ++i) {
+            for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
+                QRcode.modules[j * sz + i] = default_off;
+                QRcode.modules[i * sz + j] = default_off;
+            }
+        }
+    }
 
-    bool upwards = true;
-    bool left = true;
+    row = sz - 1;
+    col = sz - 1;
 
     while (!is_codewords_parsed(data_loc, ec_loc, params) || byte_loc != 8) {
-        // bool should_mask = (row + col) % 2 == 0;
-        bool should_mask = ((row*col) % 3 + row * col) % 2 == 0;
         bool bit_val = (byte & (0x80 >> byte_loc)) == (0x80 >> byte_loc);
 
-        if (should_mask) {
-            QRcode.modules[row * sz + col].data = !bit_val;
-        } else {
-            QRcode.modules[row * sz + col].data = bit_val;
-        }
-        QRcode.modules[row * sz + col].used = true;
+        QRcode.modules[row * sz + col].data = bit_val;
 
         if (left) {
             col--;
@@ -516,13 +732,13 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
 
                     if (row == 0 && QRcode.modules[row * sz + col].used) {
                         upwards = false;
-						if (version >= V7 && col == QRcode.width - 10) {
-							col--;
-						} else {
-							col -= col == 7 ? 2 : 1;
-							while (QRcode.modules[++row * sz + col].used) {
-							}
-						}
+                        if (version >= V7 && col == QRcode.width - 10) {
+                            col--;
+                        } else {
+                            col -= col == 7 ? 2 : 1;
+                            while (QRcode.modules[++row * sz + col].used) {
+                            }
+                        }
                     } else {
                         col++;
                     }
@@ -578,68 +794,42 @@ QRcode_t generate_QRcode(const char *message, QR_recovery_t recovery) {
         }
     }
 
+    // version
+    if (version >= V7) {
+        byte_loc = 0;
+        uint32_t version_data = get_version(version);
+        for (size_t i = 0; i < 6; ++i) {
+            for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
+                bool bit_val = (version_data & (0x1 << byte_loc)) == (0x1 << byte_loc);
+                QRcode.modules[i * sz + j] = bit_val ? default_on : default_off;
+                QRcode.modules[j * sz + i] = bit_val ? default_on : default_off;
+                byte_loc++;
+            }
+        }
+    }
+
+	// masking
+    if (mask == ANY_MASK) {
+        mask = determine_mask(QRcode);
+    }
+
+    apply_mask(QRcode, mask);
+
     // format
-    uint16_t format = get_format(recovery, MASK_6);
+    uint16_t format = get_format(recovery, mask);
     QRcode.modules[(4 * version + 9) * QRcode.width + 8] = default_on;  // Dark module
 
-    // Note: The positions are hardcoded due to awkward skips for the first
-    //       batch (top left). So the second batch is copied for consistency
-    // top left
-    QRcode.modules[8] = (format & 0x1) == 0x1 ? default_on : default_off;
-    QRcode.modules[sz + 8] = (format & 0x2) == 0x2 ? default_on : default_off;
-    QRcode.modules[2 * sz + 8] = (format & 0x4) == 0x4 ? default_on : default_off;
-    QRcode.modules[3 * sz + 8] = (format & 0x8) == 0x8 ? default_on : default_off;
-    QRcode.modules[4 * sz + 8] = (format & 0x10) == 0x10 ? default_on : default_off;
-    QRcode.modules[5 * sz + 8] = (format & 0x20) == 0x20 ? default_on : default_off;
-    QRcode.modules[7 * sz + 8] = (format & 0x40) == 0x40 ? default_on : default_off;
-    QRcode.modules[8 * sz + 8] = (format & 0x80) == 0x80 ? default_on : default_off;
-    QRcode.modules[8 * sz + 7] = (format & 0x100) == 0x100 ? default_on : default_off;
-    QRcode.modules[8 * sz + 5] = (format & 0x200) == 0x200 ? default_on : default_off;
-    QRcode.modules[8 * sz + 4] = (format & 0x400) == 0x400 ? default_on : default_off;
-    QRcode.modules[8 * sz + 3] = (format & 0x800) == 0x800 ? default_on : default_off;
-    QRcode.modules[8 * sz + 2] = (format & 0x1000) == 0x1000 ? default_on : default_off;
-    QRcode.modules[8 * sz + 1] = (format & 0x2000) == 0x2000 ? default_on : default_off;
-    QRcode.modules[8 * sz] = (format & 0x4000) == 0x4000 ? default_on : default_off;
-
-    // split (bottom left and top right)
-    QRcode.modules[9 * sz - 1] = (format & 0x1) == 0x1 ? default_on : default_off;
-    QRcode.modules[9 * sz - 2] = (format & 0x2) == 0x2 ? default_on : default_off;
-    QRcode.modules[9 * sz - 3] = (format & 0x4) == 0x4 ? default_on : default_off;
-    QRcode.modules[9 * sz - 4] = (format & 0x8) == 0x8 ? default_on : default_off;
-    QRcode.modules[9 * sz - 5] = (format & 0x10) == 0x10 ? default_on : default_off;
-    QRcode.modules[9 * sz - 6] = (format & 0x20) == 0x20 ? default_on : default_off;
-    QRcode.modules[9 * sz - 7] = (format & 0x40) == 0x40 ? default_on : default_off;
-    QRcode.modules[9 * sz - 8] = (format & 0x80) == 0x80 ? default_on : default_off;
-    QRcode.modules[(sz - 7) * sz + 8] = (format & 0x100) == 0x100 ? default_on : default_off;
-    QRcode.modules[(sz - 6) * sz + 8] = (format & 0x200) == 0x200 ? default_on : default_off;
-    QRcode.modules[(sz - 5) * sz + 8] = (format & 0x400) == 0x400 ? default_on : default_off;
-    QRcode.modules[(sz - 4) * sz + 8] = (format & 0x800) == 0x800 ? default_on : default_off;
-    QRcode.modules[(sz - 3) * sz + 8] = (format & 0x1000) == 0x1000 ? default_on : default_off;
-    QRcode.modules[(sz - 2) * sz + 8] = (format & 0x2000) == 0x2000 ? default_on : default_off;
-    QRcode.modules[(sz - 1) * sz + 8] = (format & 0x4000) == 0x4000 ? default_on : default_off;
-	
-	// version
-	if (version >= V7) {
-		byte_loc = 0;
-		uint32_t version_data = get_version(version);
-		for (size_t i = 0; i < 6; ++i) {
-			for (size_t j = QRcode.height - 11; j < QRcode.height - 8; ++j) {
-				bool bit_val = (version_data & (0x1 << byte_loc)) == (0x1 << byte_loc);
-				QRcode.modules[i * sz + j] = bit_val ? default_on : default_off;
-				QRcode.modules[j * sz + i] = bit_val ? default_on : default_off;
-				byte_loc++;
-			}
-		}
-	}
+    place_format(QRcode, format);
 
     for (size_t i = 0; i < params.block_count; ++i) {
         free(data[i]);
         free(ec[i]);
     }
+    free(codewords);
     free(data);
     free(ec);
-	free(data_loc);
-	free(ec_loc);
+    free(data_loc);
+    free(ec_loc);
 
     return QRcode;
 }
@@ -674,9 +864,7 @@ uint16_t get_format(QR_recovery_t recovery, QR_mask_t mask) {
     return ((format_val << 10) + BCH(format_val)) ^ FORMAT_XOR_MASK;
 }
 
-uint32_t get_version(QR_version_t version) {
-	return (version << 12) + golay(version);
-}
+uint32_t get_version(QR_version_t version) { return (version << 12) + golay(version); }
 
 inline size_t get_QR_size(QR_version_t QR_version) { return 17 + 4 * QR_version; }
 
@@ -2014,4 +2202,24 @@ QR_version_params_t get_version_params(QR_version_t QR_version, QR_recovery_t re
         default:
             return (QR_version_params_t){1, {{19, 7}}};
     }
+}
+
+QR_version_t get_minimum_version(size_t data_sz, QR_recovery_t recovery) {
+    QR_version_params_t params;
+    size_t total_data_sz = 0;
+
+    for (QR_version_t v = V1; v <= V40; ++v) {
+        total_data_sz = 0;
+        params = get_version_params(v, recovery);
+
+        for (size_t i = 0; i < params.block_count; ++i) {
+            total_data_sz += params.blocks[i].data_sz;
+        }
+
+        if (total_data_sz >= data_sz) {
+            return v;
+        }
+    }
+
+    return INVALID_VERSION;
 }

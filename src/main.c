@@ -19,8 +19,9 @@ int main(int argc, char **argv) {
     } else {
         message = "TEST123";
     }
+	puts(message);
 
-    QRcode = generate_QRcode(message, QR_L);
+    QRcode = generate_QRcode(message, ANY_VERSION, ANY_MASK, QR_L);
 
     image = QRcodeToImage(QRcode);
 

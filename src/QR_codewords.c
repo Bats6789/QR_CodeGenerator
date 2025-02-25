@@ -5,8 +5,9 @@
 #include "QR_codewords.h"
 #include "codeword_lookup.h"
 
-size_t generate_codewords(const char *message, size_t sz, int **codewords) {
+size_t generate_codewords(const char *message, int **codewords) {
     int mode = 0b0010;  // alphanumeric
+	size_t sz = 100;
     int *data = calloc(sz, sizeof *data);
     size_t byte_loc = 4;
     size_t data_loc = 0;
@@ -63,6 +64,11 @@ size_t generate_codewords(const char *message, size_t sz, int **codewords) {
             byte_loc = rem_tmp_bits;
             message += 2;
         }
+
+		if (data_loc + 1 >= sz) {
+			sz *= 2;
+			data = realloc(data, sizeof *data * sz);
+		}
     }
 
     if (byte_loc <= 4) {
@@ -75,18 +81,30 @@ size_t generate_codewords(const char *message, size_t sz, int **codewords) {
         byte = 0;
         data[data_loc++] = ((int)byte) & 0xFF;
     }
-    int count = 0;
 
-    for (; data_loc < sz; ++data_loc) {
+	data = realloc(data, sizeof *data * data_loc);
+
+    *codewords = data;
+
+    return data_loc;
+}
+
+size_t pad_data(int **codewords, size_t data_sz, size_t desired_sz) {
+	int count = 0;
+	int *data = *codewords;
+
+	data = realloc(data, sizeof *data * desired_sz);
+
+    for (size_t i = data_sz; i < desired_sz; ++i) {
         if ((count & 1) == 1) {
-            data[data_loc] = 0b11101100;
+            data[i] = 0b11101100;
         } else {
-            data[data_loc] = 0b00010001;
+            data[i] = 0b00010001;
         }
         count += 1;
     }
 
-    *codewords = data;
+	*codewords = data;
 
-    return sz;
+	return desired_sz;
 }
