@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,6 +70,11 @@ size_t reed_solomon(size_t data_sz, int data[data_sz], size_t ec_sz, int **error
 
     memcpy(ec, buf + data_sz, sizeof *ec * ec_sz);
     *error_correction = ec;
+
+	puts("Gen");
+	for (size_t i = 0; i < ec_sz + 1; ++i) {
+		printf("%d%c", gf_log[gp[i]], i == ec_sz ? '\n' : ' ');
+	}
 
     free(buf);
     free(gp);

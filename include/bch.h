@@ -4,5 +4,6 @@
 #include <stdint.h>
 
 uint16_t BCH(uint16_t data);
+uint32_t golay(uint32_t data);
 
 #endif /* end of header guard: __BCH_H__ */
