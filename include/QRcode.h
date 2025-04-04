@@ -107,8 +107,14 @@ typedef struct QR_version_params_t {
 	QRblock_t blocks[81];
 } QR_version_params_t;
 
+typedef struct format {
+	size_t pixel_per_module;
+	pixel_t background;
+	pixel_t foreground;
+} format_t;
+
 QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t mask, QR_recovery_t recovery);
-image_t QRcodeToImage(QRcode_t QRcode);
+image_t QRcodeToImage(QRcode_t QRcode, format_t format);
 uint16_t get_format(QR_recovery_t recovery, QR_mask_t mask);
 uint32_t get_version(QR_version_t version);
 QR_version_params_t get_version_params(QR_version_t QR_version, QR_recovery_t recover);
