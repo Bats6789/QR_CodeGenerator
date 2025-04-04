@@ -836,22 +836,25 @@ QRcode_t generate_QRcode(const char *message, QR_version_t version, QR_mask_t ma
     return QRcode;
 }
 
-image_t QRcodeToImage(QRcode_t QRcode) {
-    size_t width = (QRcode.width + 8) * PIXEL_PER_MODULE;
-    size_t height = (QRcode.height + 8) * PIXEL_PER_MODULE;
+image_t QRcodeToImage(QRcode_t QRcode, format_t format) {
+    size_t width = (QRcode.width + 8) * format.pixel_per_module;
+    size_t height = (QRcode.height + 8) * format.pixel_per_module;
     image_t image = init_image(width, height);
-    pixel_t pixel = WHITE;
+    pixel_t pixel = format.background;
+	size_t ppm = format.pixel_per_module;
+	pixel_t bg = format.background;
+	pixel_t fg = format.foreground;
 
     for (size_t i = 0; i < height; ++i) {
         for (size_t j = 0; j < width; ++j) {
-            if (i < 4 * PIXEL_PER_MODULE || j < 4 * PIXEL_PER_MODULE || i >= (QRcode.width + 4) * PIXEL_PER_MODULE ||
-                j >= (QRcode.width + 4) * PIXEL_PER_MODULE) {
-                pixel = WHITE;
+            if (i < 4 * ppm || j < 4 * ppm || i >= (QRcode.width + 4) * ppm ||
+                j >= (QRcode.width + 4) * ppm) {
+                pixel = bg;
             } else {
-                size_t mod_row = i / PIXEL_PER_MODULE - 4;
-                size_t mod_col = j / PIXEL_PER_MODULE - 4;
+                size_t mod_row = i / ppm - 4;
+                size_t mod_col = j / ppm - 4;
 
-                pixel = QRcode.modules[mod_row * QRcode.width + mod_col].data ? BLACK : WHITE;
+                pixel = QRcode.modules[mod_row * QRcode.width + mod_col].data ? fg : bg;
             }
 
             image.pixels[i * width + j] = pixel;
