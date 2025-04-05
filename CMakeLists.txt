@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(QRCode VERSION 1.0 LANGUAGES C)
+project(QRCode VERSION 1.0.1 LANGUAGES C)
 
 set(CMAKE_C_FLAGS "-Wall")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
