@@ -136,19 +136,19 @@ int main(int argc, char **argv) {
 }
 
 void print_help(void) {
-    puts("Usage: QRCode [-foh] <text>");
+    puts("Usage: QRCode [-dfhiov] <text>");
     puts("");
     puts("Generate QR code for <text>.");
     puts("");
     puts("Options:");
-    puts("  -C <color>        The foreground color. (Default 000000 or black)");
-    puts("  -c <color>        The background color. (Default FFFFFF or white)");
+    // puts("  -C <color>        The foreground color. (Default 000000 or black)");
+    // puts("  -c <color>        The background color. (Default FFFFFF or white)");
     puts("  -d <density>      The number of pixels per module. Must be greater than 1.");
     puts("                    (Default 8)");
     puts("  -f                Force file overwrites.");
     puts("  -h                Print this message.");
     puts("  -i <file>         Input filename.");
-    puts("  -l <file>         Logo to embed in the QR code.");
+    // puts("  -l <file>         Logo to embed in the QR code.");
     puts("  -o <file>         Output filename. (Default test.png)");
     puts("  -v                Print the version");
 }
