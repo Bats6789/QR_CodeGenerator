@@ -10,8 +10,7 @@
 #include "QRcode.h"
 #include "image.h"
 #include "image_export.h"
-
-#define VERSION "v1.0.0"
+#include "version.h"
 
 extern char *optarg;
 extern int optind, opterr, optopt;
@@ -32,14 +31,29 @@ int main(int argc, char **argv) {
     format_t format = {PIXEL_PER_MODULE, WHITE, BLACK};
     int value;
     char *check;
+    pixel_res_t pixel_res;
 
     while ((opt = getopt(argc, argv, "C:c:d:fhil::o:v")) != -1) {
         switch (opt) {
             case 'C':
-                puts("foreground");
+                pixel_res = str_to_color(optarg);
+
+                if (!pixel_res.valid) {
+                    fprintf(stderr, "ERROR: %s is not a valid color\n", optarg);
+                    return EXIT_FAILURE;
+                }
+
+                format.foreground = pixel_res.pixel;
                 break;
             case 'c':
-                puts("background");
+                pixel_res = str_to_color(optarg);
+
+                if (!pixel_res.valid) {
+                    fprintf(stderr, "ERROR: %s is not a valid color\n", optarg);
+                    return EXIT_FAILURE;
+                }
+
+                format.background = pixel_res.pixel;
                 break;
             case 'd':
                 errno = 0;  // set to zero to detect errors with strtod
@@ -141,9 +155,11 @@ void print_help(void) {
     puts("Generate QR code for <text>.");
     puts("");
     puts("Options:");
-    // puts("  -C <color>        The foreground color. (Default 000000 or black)");
-    // puts("  -c <color>        The background color. (Default FFFFFF or white)");
-    puts("  -d <density>      The number of pixels per module. Must be greater than 1.");
+    puts("  -C <color>        The foreground color. (Default 000000 or black)");
+    puts("  -c <color>        The background color. (Default FFFFFF or white)");
+    puts(
+        "  -d <density>      The number of pixels per module. Must be greater "
+        "than 1.");
     puts("                    (Default 8)");
     puts("  -f                Force file overwrites.");
     puts("  -h                Print this message.");
@@ -153,7 +169,7 @@ void print_help(void) {
     puts("  -v                Print the version");
 }
 
-void print_version(void) { puts("QRcode: " VERSION); }
+void print_version(void) { printf("QRcode: v" QRCode_VERSION_STRING); }
 
 char *read_file(const char *input_filename) {
     size_t sz = 100;

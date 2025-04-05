@@ -1,0 +1,10 @@
+#ifndef __VERSION_H_IN__
+#define __VERSION_H_IN__
+
+#define QRCode_VERSION_MAJOR @QRCode_VERSION_MAJOR@
+#define QRCode_VERSION_MINOR @QRCode_VERSION_MINOR@
+#define QRCode_VERSION_PATCH @QRCode_VERSION_PATCH@
+
+#define QRCode_VERSION_STRING "@QRCode_VERSION@"
+
+#endif /* end of header guard: __VERSION_H_IN__ */
