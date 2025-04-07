@@ -64,6 +64,9 @@ int export_to_png(const char *filename, image_t image) {
 
     // clean up
     png_destroy_write_struct(&png, &info);
+	for (size_t i = 0; i < image.height; ++i) {
+		free(raw_image[i]);
+	}
 
     fclose(file);
 

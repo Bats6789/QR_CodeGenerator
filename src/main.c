@@ -21,19 +21,22 @@ void print_version(void);
 char *read_file(const char *input_filename);
 
 int main(int argc, char **argv) {
-    image_t image;
-    QRcode_t QRcode;
-    int opt;
-    char ans;
-    char *message;
+    image_t image = {0, 0, NULL};
+	image_t logo_image = {0, 0, NULL};
+    QRcode_t QRcode = {0, 0, NULL};
+    int opt = 0;
+    int value = 0;
+    char ans = '\0';
+    char *message = NULL;
+    char *check = NULL;
     const char *output_filename = "test.png";
     const char *input_filename = NULL;
     bool force = false;
+	bool embed_logo = false;
     format_t format = {PIXEL_PER_MODULE, WHITE, BLACK};
-    int value;
-    char *check;
-    pixel_res_t pixel_res;
-	image_t logo_image = {0, 0, NULL};
+    pixel_res_t pixel_res = {{.color = 0}, false};
+	point_t start_embed_pt = {0, 0};
+	point_t stop_embed_pt = {0, 0};
 
     while ((opt = getopt(argc, argv, "C:c:d:fhi:l:o:v")) != -1) {
         switch (opt) {
@@ -98,6 +101,8 @@ int main(int argc, char **argv) {
 					perror(optarg);
 					return EXIT_FAILURE;
 				}
+				export_to_png("copy.png", logo_image);
+				embed_logo = true;
                 break;
             case 'o':
                 output_filename = optarg;
@@ -137,9 +142,18 @@ int main(int argc, char **argv) {
 
     puts(message);
 
-    QRcode = generate_QRcode(message, ANY_VERSION, ANY_MASK, QR_L);
+    QRcode = generate_QRcode(message, ANY_VERSION, ANY_MASK, QR_H);
 
     image = QRcodeToImage(QRcode, format);
+
+	if (embed_logo) {
+		start_embed_pt.x = image.width * 0.375;
+		start_embed_pt.y = image.height * 0.375;
+		stop_embed_pt.x = image.width * 0.625;
+		stop_embed_pt.y = image.height * 0.625;
+		embed_img(image, logo_image, start_embed_pt, stop_embed_pt);
+		free_image(logo_image);
+	}
 
     if (export_to_png(output_filename, image) != 0) {
         perror("export");
@@ -150,10 +164,6 @@ int main(int argc, char **argv) {
     if (input_filename != NULL) {
         free(message);
     }
-
-	if (logo_image.pixels != NULL) {
-		free_image(logo_image);
-	}
 
     return 0;
 }
