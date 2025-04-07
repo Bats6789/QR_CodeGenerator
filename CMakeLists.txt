@@ -20,7 +20,7 @@ else()
 endif()
 
 # =================Libraries============================
-add_library(image STATIC src/image.c src/image_export.c)
+add_library(image STATIC src/image.c src/image_export.c src/image_import.c)
 target_link_libraries(image ${PNG_LIBRARIES})
 
 add_library(reed_solomon STATIC src/reed_solomon.c)

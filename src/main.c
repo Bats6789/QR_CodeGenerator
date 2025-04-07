@@ -9,6 +9,7 @@
 
 #include "QRcode.h"
 #include "image.h"
+#include "image_import.h"
 #include "image_export.h"
 #include "version.h"
 
@@ -32,8 +33,9 @@ int main(int argc, char **argv) {
     int value;
     char *check;
     pixel_res_t pixel_res;
+	image_t logo_image = {0, 0, NULL};
 
-    while ((opt = getopt(argc, argv, "C:c:d:fhil::o:v")) != -1) {
+    while ((opt = getopt(argc, argv, "C:c:d:fhi:l:o:v")) != -1) {
         switch (opt) {
             case 'C':
                 pixel_res = str_to_color(optarg);
@@ -91,7 +93,11 @@ int main(int argc, char **argv) {
                 input_filename = optarg;
                 break;
             case 'l':
-                puts("logo");
+				logo_image = import_image(optarg);
+				if (logo_image.pixels == NULL) {
+					perror(optarg);
+					return EXIT_FAILURE;
+				}
                 break;
             case 'o':
                 output_filename = optarg;
@@ -100,7 +106,6 @@ int main(int argc, char **argv) {
                 print_version();
                 return EXIT_SUCCESS;
             case '?':
-                return EXIT_FAILURE;
             default:
                 fprintf(stderr, "ERROR: Unknown argument: %c\n", opt);
                 return EXIT_FAILURE;
@@ -145,6 +150,10 @@ int main(int argc, char **argv) {
     if (input_filename != NULL) {
         free(message);
     }
+
+	if (logo_image.pixels != NULL) {
+		free_image(logo_image);
+	}
 
     return 0;
 }
