@@ -183,7 +183,7 @@ void print_help(void) {
     puts("  -f                Force file overwrites.");
     puts("  -h                Print this message.");
     puts("  -i <file>         Input filename.");
-    // puts("  -l <file>         Logo to embed in the QR code.");
+    puts("  -l <file>         Logo to embed in the QR code.");
     puts("  -o <file>         Output filename. (Default test.png)");
     puts("  -v                Print the version");
 }

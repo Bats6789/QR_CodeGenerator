@@ -1,4 +1,6 @@
 #include <ctype.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -91,26 +93,31 @@ pixel_t blend_pixel_by_alpha(pixel_t bottom_pixel, pixel_t top_pixel) {
     pixel_t res;
     pixel_t bp = bottom_pixel;
     pixel_t tp = top_pixel;
-    uint8_t bp_alpha_val;
+	double b_alpha = bottom_pixel.alpha / 255.0;
+	double t_alpha = top_pixel.alpha / 255.0;
+    double bp_alpha_val;
+	double new_alpha;
 
-    bp_alpha_val = bp.alpha * (255 - tp.alpha);
+    bp_alpha_val = b_alpha * (1.0 - t_alpha);
 
-    res.alpha = tp.alpha + bp_alpha_val;
+    new_alpha = t_alpha + bp_alpha_val;
 
-    res.red = (tp.red * tp.alpha + bp.red * bp_alpha_val) / res.alpha;
-    res.green = (tp.green * tp.alpha + bp.green * bp_alpha_val) / res.alpha;
-    res.blue = (tp.blue * tp.alpha + bp.blue * bp_alpha_val) / res.alpha;
+    res.red = round((tp.red * t_alpha + bp.red * bp_alpha_val) / new_alpha);
+    res.green = round((tp.green * t_alpha + bp.green * bp_alpha_val) / new_alpha);
+    res.blue = round((tp.blue * t_alpha + bp.blue * bp_alpha_val) / new_alpha);
+	res.alpha = 255 * round(new_alpha);
 
     return res;
 }
 
 int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, point_t stop_embed_pt) {
-    size_t height_compression;
-    size_t width_compression;
+    size_t height_ratio;
+    size_t width_ratio;
     point_t avg_start;
     point_t avg_stop;
     point_t main_loc;
     pixel_t avg_color;
+    pixel_t blend_color;
 
     if (embed_image.pixels == NULL || main_image.pixels == NULL) {
         return EXIT_FAILURE;
@@ -120,28 +127,38 @@ int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, p
         return EXIT_FAILURE;
     }
 
-    height_compression = embed_image.height / (stop_embed_pt.y - start_embed_pt.y);
-    width_compression = embed_image.width / (stop_embed_pt.x - start_embed_pt.x);
+	if (embed_image.width >= embed_image.height) {
+		width_ratio = embed_image.width / (stop_embed_pt.x - start_embed_pt.x);
+		height_ratio = embed_image.height * ((double)width_ratio / embed_image.width);
+	} else {
+		height_ratio = embed_image.height / (stop_embed_pt.y - start_embed_pt.y);
+		width_ratio = embed_image.width * ((double)height_ratio / embed_image.height);
+	}
 
     main_loc = start_embed_pt;
 
-    for (size_t row = 0; row  + height_compression < embed_image.height; row += height_compression) {
+    for (size_t row = 0; row < embed_image.height; row += height_ratio) {
 		avg_start.y = row;
-		if (avg_stop.y + height_compression > embed_image.height) {
+
+		if (avg_start.y + height_ratio > embed_image.height) {
 			avg_stop.y = embed_image.height - 1;
 		} else {
-			avg_stop.y += height_compression;
+			avg_stop.y = avg_start.y + height_ratio;
 		}
-        for (size_t col = 0; col + width_compression < embed_image.width; col += width_compression) {
+
+        for (size_t col = 0; col < embed_image.width; col += width_ratio) {
             avg_start.x = col;
-			if (avg_stop.x + width_compression > embed_image.width) {
+
+			if (avg_start.x + width_ratio > embed_image.width) {
 				avg_stop.x = embed_image.width - 1;
 			} else {
-				avg_stop.x += width_compression;
+				avg_stop.x = avg_start.x + width_ratio;
 			}
+
             avg_color = get_avg_color(embed_image, avg_start, avg_stop);
-            // avg_color = blend_pixel_by_alpha(get_color(main_image, main_loc), avg_color);
-            color_pixel(main_image, avg_color, main_loc);
+            blend_color = blend_pixel_by_alpha(get_color(main_image, main_loc), avg_color);
+            color_pixel(main_image, blend_color, main_loc);
+
             main_loc.x++;
         }
         main_loc.x = start_embed_pt.x;
