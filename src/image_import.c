@@ -1,15 +1,37 @@
+#include <ctype.h>
 #include <png.h>
 #include <pngconf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <jpeglib.h>
+#include <string.h>
 
 #include "image.h"
 #include "image_import.h"
 
 image_t import_image(const char *filename) {
     image_t image = {0, 0, NULL};
+	const char *dot = strrchr(filename, '.');
+	char ext[5];
 
-    image = import_png(filename);
+	if (!dot || dot == filename) {
+		return image;
+	}
+
+	dot++;
+
+	for (size_t i = 0; i < 5; ++i) {
+		ext[i] = tolower(dot[i]);
+		if (ext[i] == '\0') {
+			break;
+		}
+	}
+
+	if (strcmp(ext, "png") == 0) {
+		image = import_png(filename);
+	} else if (strcmp(ext, "jpeg") == 0 || strcmp(ext, "jpg") == 0) {
+		image = import_jpeg(filename);
+	}
 
     return image;
 }
@@ -108,4 +130,80 @@ image_t import_png(const char *filename) {
     free(image_data);
 
     return image;
+}
+
+struct my_error_mgr {
+	struct jpeg_error_mgr pub;
+
+	jmp_buf setjmp_buffer;
+};
+
+typedef struct my_error_mgr * my_error_ptr;
+
+METHODDEF(void) my_error_exit(j_common_ptr cinfo) {
+	my_error_ptr myerr = (my_error_ptr) cinfo->err;
+
+	(*cinfo->err->output_message) (cinfo);
+
+	longjmp(myerr->setjmp_buffer, 1);
+}
+
+image_t import_jpeg(const char *filename) {
+	image_t image = {0, 0, NULL};
+	struct jpeg_decompress_struct cinfo;
+	struct my_error_mgr jerr;
+	FILE *file;
+	JSAMPARRAY buffer;
+	int row_stride;
+
+	file = fopen(filename, "rb");
+	if (file == NULL) {
+		return image;
+	}
+
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = my_error_exit;
+
+	if (setjmp(jerr.setjmp_buffer)) {
+		jpeg_destroy_decompress(&cinfo);
+		fclose(file);
+		if (image.pixels != NULL) {
+			free_image(image);
+		}
+		return (image_t){0, 0, NULL};
+	}
+
+	jpeg_create_decompress(&cinfo);
+
+	jpeg_stdio_src(&cinfo, file);
+
+	(void) jpeg_read_header(&cinfo, TRUE);
+
+	// force output colorspace to always be RGB
+	cinfo.out_color_space = JCS_RGB;
+
+	(void) jpeg_start_decompress(&cinfo);
+
+	image = init_image(cinfo.output_width, cinfo.output_height);
+
+	row_stride = cinfo.output_width * cinfo.output_components;
+
+	buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+
+	while (cinfo.output_scanline < cinfo.output_height) {
+		(void) jpeg_read_scanlines(&cinfo, buffer, 1);
+		for (size_t i = 0; i < image.width; ++i) {
+			image.pixels[(cinfo.output_scanline - 1) * image.width + i].red = buffer[0][3 * i];
+			image.pixels[(cinfo.output_scanline - 1) * image.width + i].green = buffer[0][3 * i + 1];
+			image.pixels[(cinfo.output_scanline - 1) * image.width + i].blue = buffer[0][3 * i + 2];
+		}
+	}
+
+	jpeg_finish_decompress(&cinfo);
+
+	jpeg_destroy_decompress(&cinfo);
+
+	fclose(file);
+
+	return image;
 }
