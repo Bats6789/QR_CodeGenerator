@@ -110,7 +110,43 @@ pixel_t blend_pixel_by_alpha(pixel_t bottom_pixel, pixel_t top_pixel) {
     return res;
 }
 
-int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, point_t stop_embed_pt) {
+static int embed_small_img(image_t main_image, image_t embed_image, point_t start_embed_pt, point_t stop_embed_pt) {
+	size_t height_repeat;
+    size_t width_repeat;
+    point_t main_loc;
+    pixel_t c;
+    pixel_t blend_color;
+
+	if (embed_image.width >= embed_image.height) {
+		width_repeat = (stop_embed_pt.x - start_embed_pt.x) / embed_image.width;
+		height_repeat = embed_image.height * ((double)embed_image.width / width_repeat);
+	} else {
+		height_repeat = (stop_embed_pt.y - start_embed_pt.y) / embed_image.height;
+		width_repeat = embed_image.width * ((double)embed_image.height / height_repeat);
+	}
+
+    main_loc = start_embed_pt;
+
+    for (size_t row = 0; row < embed_image.height; ++row) {
+		for (size_t row_rep = 0; row_rep < height_repeat; ++row_rep) {
+			for (size_t col = 0; col < embed_image.width - 1; ++col) {
+				for (size_t col_rep = 0; col_rep < width_repeat; ++col_rep) {
+					c = get_color(embed_image, (point_t){col, row});
+					blend_color = blend_pixel_by_alpha(get_color(main_image, main_loc), c);
+					color_pixel(main_image, blend_color, main_loc);
+
+					main_loc.x++;
+				}
+			}
+			main_loc.x = start_embed_pt.x;
+			main_loc.y++;
+		}
+    }
+
+    return EXIT_SUCCESS;
+}
+
+static int embed_large_img(image_t main_image, image_t embed_image, point_t start_embed_pt, point_t stop_embed_pt) {
     size_t height_ratio;
     size_t width_ratio;
     point_t avg_start;
@@ -118,14 +154,6 @@ int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, p
     point_t main_loc;
     pixel_t avg_color;
     pixel_t blend_color;
-
-    if (embed_image.pixels == NULL || main_image.pixels == NULL) {
-        return EXIT_FAILURE;
-    }
-
-    if (start_embed_pt.x >= stop_embed_pt.x || start_embed_pt.y >= stop_embed_pt.y) {
-        return EXIT_FAILURE;
-    }
 
 	if (embed_image.width >= embed_image.height) {
 		width_ratio = embed_image.width / (stop_embed_pt.x - start_embed_pt.x);
@@ -166,4 +194,20 @@ int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, p
     }
 
     return EXIT_SUCCESS;
+}
+
+int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, point_t stop_embed_pt) {
+    if (embed_image.pixels == NULL || main_image.pixels == NULL) {
+        return EXIT_FAILURE;
+    }
+
+    if (start_embed_pt.x >= stop_embed_pt.x || start_embed_pt.y >= stop_embed_pt.y) {
+        return EXIT_FAILURE;
+    }
+
+	if (stop_embed_pt.x - start_embed_pt.x > embed_image.width && stop_embed_pt.y - start_embed_pt.y > embed_image.height) {
+		return embed_small_img(main_image, embed_image, start_embed_pt, stop_embed_pt);
+	} else {
+		return embed_large_img(main_image, embed_image, start_embed_pt, stop_embed_pt);
+	}
 }

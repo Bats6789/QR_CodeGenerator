@@ -175,9 +175,7 @@ void print_help(void) {
     puts("Options:");
     puts("  -C <color>        The foreground color. (Default 000000 or black)");
     puts("  -c <color>        The background color. (Default FFFFFF or white)");
-    puts(
-        "  -d <density>      The number of pixels per module. Must be greater "
-        "than 1.");
+    puts("  -d <density>      The number of pixels per module. Must be greater than 1.");
     puts("                    (Default 8)");
     puts("  -f                Force file overwrites.");
     puts("  -h                Print this message.");

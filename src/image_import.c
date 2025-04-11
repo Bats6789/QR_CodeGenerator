@@ -9,6 +9,13 @@
 #include "image.h"
 #include "image_import.h"
 
+struct jpeg_error_t {
+    struct jpeg_error_mgr pub;
+    jmp_buf setjmp_buffer;
+};
+
+typedef struct jpeg_error_t *my_error_ptr;
+
 image_t import_image(const char *filename) {
     image_t image = {0, 0, NULL};
 	const char *dot = strrchr(filename, '.');
@@ -132,15 +139,7 @@ image_t import_png(const char *filename) {
     return image;
 }
 
-struct my_error_mgr {
-	struct jpeg_error_mgr pub;
-
-	jmp_buf setjmp_buffer;
-};
-
-typedef struct my_error_mgr * my_error_ptr;
-
-METHODDEF(void) my_error_exit(j_common_ptr cinfo) {
+METHODDEF(void) jpeg_error_callback(j_common_ptr cinfo) {
 	my_error_ptr myerr = (my_error_ptr) cinfo->err;
 
 	(*cinfo->err->output_message) (cinfo);
@@ -151,7 +150,7 @@ METHODDEF(void) my_error_exit(j_common_ptr cinfo) {
 image_t import_jpeg(const char *filename) {
 	image_t image = {0, 0, NULL};
 	struct jpeg_decompress_struct cinfo;
-	struct my_error_mgr jerr;
+	struct jpeg_error_t jerr;
 	FILE *file;
 	JSAMPARRAY buffer;
 	int row_stride;
@@ -162,7 +161,7 @@ image_t import_jpeg(const char *filename) {
 	}
 
 	cinfo.err = jpeg_std_error(&jerr.pub);
-	jerr.pub.error_exit = my_error_exit;
+	jerr.pub.error_exit = jpeg_error_callback;
 
 	if (setjmp(jerr.setjmp_buffer)) {
 		jpeg_destroy_decompress(&cinfo);
@@ -192,11 +191,12 @@ image_t import_jpeg(const char *filename) {
 
 	while (cinfo.output_scanline < cinfo.output_height) {
 		(void) jpeg_read_scanlines(&cinfo, buffer, 1);
+		size_t row = (cinfo.output_scanline - 1) * image.width;
 		for (size_t i = 0; i < image.width; ++i) {
-			image.pixels[(cinfo.output_scanline - 1) * image.width + i].red = buffer[0][3 * i];
-			image.pixels[(cinfo.output_scanline - 1) * image.width + i].green = buffer[0][3 * i + 1];
-			image.pixels[(cinfo.output_scanline - 1) * image.width + i].blue = buffer[0][3 * i + 2];
-			image.pixels[(cinfo.output_scanline - 1) * image.width + i].alpha = 255;
+			image.pixels[row + i].red = buffer[0][3 * i];
+			image.pixels[row + i].green = buffer[0][3 * i + 1];
+			image.pixels[row + i].blue = buffer[0][3 * i + 2];
+			image.pixels[row + i].alpha = 255;
 		}
 	}
 
