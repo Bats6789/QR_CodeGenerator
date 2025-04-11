@@ -137,7 +137,7 @@ int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, p
 
     main_loc = start_embed_pt;
 
-    for (size_t row = 0; row < embed_image.height; row += height_ratio) {
+    for (size_t row = 0; row < embed_image.height - 1; row += height_ratio) {
 		avg_start.y = row;
 
 		if (avg_start.y + height_ratio > embed_image.height) {
@@ -146,7 +146,7 @@ int embed_img(image_t main_image, image_t embed_image, point_t start_embed_pt, p
 			avg_stop.y = avg_start.y + height_ratio;
 		}
 
-        for (size_t col = 0; col < embed_image.width; col += width_ratio) {
+        for (size_t col = 0; col < embed_image.width - 1; col += width_ratio) {
             avg_start.x = col;
 
 			if (avg_start.x + width_ratio > embed_image.width) {

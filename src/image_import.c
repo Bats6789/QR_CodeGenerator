@@ -196,6 +196,7 @@ image_t import_jpeg(const char *filename) {
 			image.pixels[(cinfo.output_scanline - 1) * image.width + i].red = buffer[0][3 * i];
 			image.pixels[(cinfo.output_scanline - 1) * image.width + i].green = buffer[0][3 * i + 1];
 			image.pixels[(cinfo.output_scanline - 1) * image.width + i].blue = buffer[0][3 * i + 2];
+			image.pixels[(cinfo.output_scanline - 1) * image.width + i].alpha = 255;
 		}
 	}
 

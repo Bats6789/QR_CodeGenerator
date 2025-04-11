@@ -101,7 +101,6 @@ int main(int argc, char **argv) {
 					perror(optarg);
 					return EXIT_FAILURE;
 				}
-				export_to_png("copy.png", logo_image);
 				embed_logo = true;
                 break;
             case 'o':
